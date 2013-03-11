@@ -9,7 +9,7 @@ global proc createCrossShadeDialog() {
   string $window = `window -title "CrossShade" -maximizeButton false -rtf true $windowname`;
   columnLayout -adjustableColumn true mainColumnLayout;
   
-  textFieldButtonGrp -text "browse file..." -editable false 
+  textFieldButtonGrp -text "browse image..." -editable false 
     -adj 1 -cl2 "left" "center" -ct2 "both" "both"
     -buttonLabel "Browse"
     -buttonCommand "browseFile()"
@@ -18,8 +18,13 @@ global proc createCrossShadeDialog() {
   intSliderGrp -label "Value" -field true -cal 1 left
     -minValue -0.0 -maxValue 10.0
     -fieldMinValue 0.0 -fieldMaxValue 100.0
-    -value 5.0
+    -value 2.0
     fieldValue;
+    
+  radioButtonGrp -label "Curve Mode" -cal 1 left
+    -numberOfRadioButtons 3    
+    -labelArray3 "Cross Section" "Edge" "Silhouette"
+    radioCurveMode;
     
   button -label "Run CrossShade" -c "runCommand()";
   
@@ -37,6 +42,11 @@ global proc browseFile() {
   textFieldButtonGrp -e -text $filePath fieldBrowse;
 
   // setup plane + load image
+  $FIXED_HEIGHT = 17;
+  $bgplane = `polyPlane -n crossShadeBgPlane -w $FIXED_HEIGHT -h $FIXED_HEIGHT`;  
+  setAttr ($bgplane[0]+".rotateX") 90;
+  $aspect = 1.6;  // to be calculated
+  setAttr ($bgplane[1]+".width") ($aspect*$FIXED_HEIGHT);
 }
 
 global proc runCommand() {
