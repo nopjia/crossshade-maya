@@ -1,0 +1,62 @@
+global string $windowname = "CrossShadeWindow";
+
+global proc createCrossShadeDialog() {
+  global string $windowname;
+
+  if (`window -exists $windowname`) deleteUI $windowname;  
+  if (`windowPref -exists $windowname`) windowPref -remove $windowname;
+  
+  string $window = `window -title "CrossShade" -maximizeButton false -rtf true $windowname`;
+  columnLayout -adjustableColumn true mainColumnLayout;
+  
+  textFieldButtonGrp -text "browse file..." -editable false 
+    -adj 1 -cl2 "left" "center" -ct2 "both" "both"
+    -buttonLabel "Browse"
+    -buttonCommand "browseFile()"
+    fieldBrowse;
+  
+  intSliderGrp -label "Value" -field true -cal 1 left
+    -minValue -0.0 -maxValue 10.0
+    -fieldMinValue 0.0 -fieldMaxValue 100.0
+    -value 5.0
+    fieldValue;
+    
+  button -label "Run CrossShade" -c "runCommand()";
+  
+  showWindow $window;
+}
+
+global proc deleteCrossShadeDialog() {
+  global string $windowname;
+  if (`window -exists $windowname`) deleteUI $windowname;
+  if (`windowPref -exists $windowname`) windowPref -remove $windowname;
+}
+
+global proc browseFile() {
+  string $filePath = `fileDialog -m 0`;
+  textFieldButtonGrp -e -text $filePath fieldBrowse;
+
+  // setup plane + load image
+}
+
+global proc runCommand() {
+  int $value = `intSliderGrp -q -v fieldValue`;
+  print ("run crossshade "+$value);
+}
+
+global proc initCrossShade() {
+  lookThroughModelPanel front modelPanel4;
+  createCrossShadeDialog();
+}
+
+global proc createCrossShadeUI() {
+  menu -parent "MayaWindow" "CrossShade";
+  menuItem -label "CrossShade" -c "initCrossShade()";
+}
+
+global proc deleteCrossShadeUI() {
+  deleteUI "CrossShade";
+  deleteCrossShadeDialog();
+}
+
+createCrossShadeUI();
