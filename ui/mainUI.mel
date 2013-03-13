@@ -1,5 +1,10 @@
 global string $windowname = "CrossShadeWindow";
 
+global int $prevRadioSelect = 0;
+global string $curvesCross[];
+global string $curvesSilhouette[];
+global string $curvesEdge[];
+
 global proc createCrossShadeDialog() {
   global string $windowname;
 
@@ -22,6 +27,7 @@ global proc createCrossShadeDialog() {
     fieldValue;
     
   radioButtonGrp -label "Curve Mode" -cal 1 left
+    -onCommand "addCurves()"
     -numberOfRadioButtons 3    
     -labelArray3 "Cross Section" "Edge" "Silhouette"
     radioCurveMode;
@@ -49,6 +55,74 @@ global proc browseFile() {
   setAttr ($bgplane[1]+".width") ($aspect*$FIXED_HEIGHT);
 }
 
+global proc addCurves() {
+  global int $prevRadioSelect;
+  global string $curvesCross[];
+  global string $curvesSilhouette[];
+  global string $curvesEdge[];
+
+  int $radioSelect = `radioButtonGrp -q -select radioCurveMode`;
+  
+  if ($prevRadioSelect != 0) {
+    string $mode;
+    switch ($prevRadioSelect) {
+    case 1:
+      $mode = "layerCross";
+      break;
+    case 2:
+      $mode = "layerEdge";
+      break;
+    case 3:
+      $mode = "layerSilhouette";
+      break;
+    }
+  
+    print ("adding curves to "+$mode+"\n");
+    
+    select -all;
+    string $listAll[] = `ls -sl -type "transform"`;
+    select -cl;
+    
+    // check for "curve"
+    // if not already in a list, append to list
+    for ($s in $listAll) {
+      if ( size(`match "curve" $s`) && 
+        stringArrayContains($s, $curvesCross) == 0 &&
+        stringArrayContains($s, $curvesEdge) == 0 &&
+        stringArrayContains($s, $curvesSilhouette) == 0 
+      ) {
+      
+        switch ($prevRadioSelect) {
+        case 1:
+          $curvesCross[ size($curvesCross) ] = $s;
+          break;
+        case 2:
+          $curvesEdge[ size($curvesEdge) ] = $s;
+          break;
+        case 3:
+          $curvesSilhouette[ size($curvesSilhouette) ] = $s;
+          break;
+        }
+        
+      }
+    }
+    
+    switch ($prevRadioSelect) {
+    case 1:
+      editDisplayLayerMembers $mode $curvesCross;
+      break;
+    case 2:
+      editDisplayLayerMembers $mode $curvesEdge;
+      break;
+    case 3:
+      editDisplayLayerMembers $mode $curvesSilhouette;
+      break;
+    }
+  }
+  
+  $prevRadioSelect = $radioSelect;
+}
+
 global proc runCommand() {
   int $value = `intSliderGrp -q -v fieldValue`;
   print ("run crossshade "+$value);
@@ -57,6 +131,14 @@ global proc runCommand() {
 global proc initCrossShade() {
   lookThroughModelPanel front modelPanel4;
   createCrossShadeDialog();
+  
+  // create layers
+  createDisplayLayer -name "layerCross" -number 1 -empty;
+  setAttr layerCross.color 4;
+  createDisplayLayer -name "layerSilhouette" -number 2 -empty;
+  setAttr layerSilhouette.color 6;
+  createDisplayLayer -name "layerEdge" -number 3 -empty;
+  setAttr layerEdge.color 14;
 }
 
 global proc createCrossShadeUI() {
@@ -69,4 +151,4 @@ global proc deleteCrossShadeUI() {
   deleteCrossShadeDialog();
 }
 
-createCrossShadeUI();
+//createCrossShadeUI();
