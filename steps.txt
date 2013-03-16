@@ -1,0 +1,18 @@
+GUI
+  MEL window stuff
+  viewport setup
+  image plane setup
+  curve editing and marking
+Curve Interpretation
+  collect intersections, positions, tangents, etc
+Estimate Curve Planes
+  setting up constraints
+  code Interior Point Method solver
+  solve constraints
+  determine orientation
+Normal Propagation
+  propagate normals along cross sections
+    blend rotated frames, using arc-length weighting
+  interpolate normals between curves - Coons
+Construct Mesh Geometry
+Light + Shade + Render
