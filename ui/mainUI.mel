@@ -20,11 +20,11 @@ global proc createCrossShadeDialog() {
     -buttonCommand "browseFile()"
     fieldBrowse;
   
-  intSliderGrp -label "Value" -field true -cal 1 left
-    -minValue -0.0 -maxValue 10.0
-    -fieldMinValue 0.0 -fieldMaxValue 100.0
-    -value 2.0
-    fieldValue;
+  // intSliderGrp -label "Value" -field true -cal 1 left
+    // -minValue -0.0 -maxValue 10.0
+    // -fieldMinValue 0.0 -fieldMaxValue 100.0
+    // -value 2.0
+    // fieldValue;
     
   radioButtonGrp -label "Curve Mode" -cal 1 left
     -onCommand "addCurves()"
@@ -124,8 +124,10 @@ global proc addCurves() {
 }
 
 global proc runCommand() {
-  int $value = `intSliderGrp -q -v fieldValue`;
+  // int $value = `intSliderGrp -q -v fieldValue`;
   print ("run crossshade "+$value);
+  
+  
 }
 
 global proc initCrossShade() {
@@ -134,7 +136,7 @@ global proc initCrossShade() {
   
   // create layers
   createDisplayLayer -name "layerCross" -number 1 -empty;
-  setAttr layerCross.color 4;
+  setAttr layerCross.color 13;
   createDisplayLayer -name "layerSilhouette" -number 2 -empty;
   setAttr layerSilhouette.color 6;
   createDisplayLayer -name "layerEdge" -number 3 -empty;
