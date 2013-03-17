@@ -6,8 +6,8 @@ crossSections
 
 def processCrossSections():
 
-  mel.eval("layerEditorSelectObjects layerCross;")
-  crossSections = mel.eval('ls -sl -type "transform"')
+  mel.eval('layerEditorSelectObjects layerCross;')
+  crossSections = mel.eval('ls -sl -type transform')
 
   # no curve drawn
   if not crossSections:
@@ -32,7 +32,7 @@ def processCrossSections():
         # save
         crossHairPos[ci][cj] = pi;
         
-        print "(%s,%s)" % (ci, cj)
+        print '(%s,%s)' % (ci, cj)
         
       else:
-        print "no curve intersect"
+        print 'no curve intersect'
