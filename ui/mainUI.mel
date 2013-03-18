@@ -48,11 +48,23 @@ global proc browseFile() {
   textFieldButtonGrp -e -text $filePath fieldBrowse;
 
   // setup plane + load image
-  $FIXED_HEIGHT = 17;
-  $bgplane = `polyPlane -n crossShadeBgPlane -w $FIXED_HEIGHT -h $FIXED_HEIGHT`;  
-  setAttr ($bgplane[0]+".rotateX") 90;
-  $aspect = 1.6;  // to be calculated
-  setAttr ($bgplane[1]+".width") ($aspect*$FIXED_HEIGHT);
+  //$FIXED_HEIGHT = 17;
+  //$bgplane = `polyPlane -n crossShadeBgPlane -w $FIXED_HEIGHT -h $FIXED_HEIGHT`;  
+  
+  //setAttr ($bgplane[0]+".rotateX") 90;
+  //$aspect = 1.6;  // to be calculated
+  //setAttr ($bgplane[1]+".width") ($aspect*$FIXED_HEIGHT);
+  
+  // Move plane forward by 0.01 in Z so it is above the grid lines
+  // setAttr "crossShadeBgPlane.translateZ" 0.001;
+ 
+  
+  // create a new image plane
+  string $imagePlaneName = `createNode imagePlane`;
+  setAttr ( $imagePlaneName + ".imageName" ) -type "string" $filePath;
+
+  // attach image plane to front camera view    
+  cameraImagePlaneUpdate front $imagePlaneName;
 }
 
 global proc addCurves() {
@@ -153,4 +165,4 @@ global proc deleteCrossShadeUI() {
   deleteCrossShadeDialog();
 }
 
-//createCrossShadeUI();
+createCrossShadeUI();

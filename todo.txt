@@ -1,0 +1,15 @@
+Todo
+
+Revise design document
+Color curves as you draw them
+Extract necessary information from the curves
+    NURBS - Non-Uniform Rational B-Spline
+    http://en.wikipedia.org/wiki/Non-uniform_rational_B-spline
+    Curve intersections - http://forums.cgsociety.org/archive/index.php/t-989694.html
+    http://nccastaff.bournemouth.ac.uk/jmacey/RobTheBloke/www/research/maya/mfnnurbscurve.htm
+    http://download.autodesk.com/us/maya/2010help/API/class_m_fn_data.html
+    http://download.autodesk.com/us/maya/2010help/Commands/curveIntersect.html
+    http://download.autodesk.com/us/maya/2010help/Commands/pointOnCurve.html
+Algorithms for analyzing curve information
+Thicken curves drawn (maybe)
+Integrate UI into Maya plugin
