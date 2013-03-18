@@ -165,4 +165,4 @@ global proc deleteCrossShadeUI() {
   deleteCrossShadeDialog();
 }
 
-createCrossShadeUI();
+// createCrossShadeUI();
