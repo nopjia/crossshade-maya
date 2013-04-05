@@ -48,7 +48,9 @@ def processCrossSections():
         
       else:
         print 'no curve intersect'
-        
+  
+  # clear all selection
+  mel.eval("select -cl")
         
 def printCrossSectionData():
   global numCrossSections
