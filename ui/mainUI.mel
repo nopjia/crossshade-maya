@@ -137,7 +137,7 @@ global proc addCurves() {
 
 global proc runCommand() {
   // int $value = `intSliderGrp -q -v fieldValue`;
-  print ("run crossshade");
+  print ("run crossshade\n");
   
   CrossShadeCmd;
 }
