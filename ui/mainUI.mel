@@ -20,11 +20,11 @@ global proc createCrossShadeDialog() {
     -buttonCommand "browseFile()"
     fieldBrowse;
   
-  intSliderGrp -label "Value" -field true -cal 1 left
-    -minValue -0.0 -maxValue 10.0
-    -fieldMinValue 0.0 -fieldMaxValue 100.0
-    -value 2.0
-    fieldValue;
+  // intSliderGrp -label "Value" -field true -cal 1 left
+    // -minValue -0.0 -maxValue 10.0
+    // -fieldMinValue 0.0 -fieldMaxValue 100.0
+    // -value 2.0
+    // fieldValue;
     
   radioButtonGrp -label "Curve Mode" -cal 1 left
     -onCommand "addCurves()"
@@ -48,11 +48,23 @@ global proc browseFile() {
   textFieldButtonGrp -e -text $filePath fieldBrowse;
 
   // setup plane + load image
-  $FIXED_HEIGHT = 17;
-  $bgplane = `polyPlane -n crossShadeBgPlane -w $FIXED_HEIGHT -h $FIXED_HEIGHT`;  
-  setAttr ($bgplane[0]+".rotateX") 90;
-  $aspect = 1.6;  // to be calculated
-  setAttr ($bgplane[1]+".width") ($aspect*$FIXED_HEIGHT);
+  //$FIXED_HEIGHT = 17;
+  //$bgplane = `polyPlane -n crossShadeBgPlane -w $FIXED_HEIGHT -h $FIXED_HEIGHT`;  
+  
+  //setAttr ($bgplane[0]+".rotateX") 90;
+  //$aspect = 1.6;  // to be calculated
+  //setAttr ($bgplane[1]+".width") ($aspect*$FIXED_HEIGHT);
+  
+  // Move plane forward by 0.01 in Z so it is above the grid lines
+  // setAttr "crossShadeBgPlane.translateZ" 0.001;
+ 
+  
+  // create a new image plane
+  string $imagePlaneName = `createNode imagePlane`;
+  setAttr ( $imagePlaneName + ".imageName" ) -type "string" $filePath;
+
+  // attach image plane to front camera view    
+  cameraImagePlaneUpdate front $imagePlaneName;
 }
 
 global proc addCurves() {
@@ -124,8 +136,10 @@ global proc addCurves() {
 }
 
 global proc runCommand() {
-  int $value = `intSliderGrp -q -v fieldValue`;
-  print ("run crossshade "+$value);
+  // int $value = `intSliderGrp -q -v fieldValue`;
+  print ("run crossshade\n");
+  
+  CrossShadeCmd;
 }
 
 global proc initCrossShade() {
@@ -134,7 +148,7 @@ global proc initCrossShade() {
   
   // create layers
   createDisplayLayer -name "layerCross" -number 1 -empty;
-  setAttr layerCross.color 4;
+  setAttr layerCross.color 13;
   createDisplayLayer -name "layerSilhouette" -number 2 -empty;
   setAttr layerSilhouette.color 6;
   createDisplayLayer -name "layerEdge" -number 3 -empty;
@@ -151,4 +165,4 @@ global proc deleteCrossShadeUI() {
   deleteCrossShadeDialog();
 }
 
-//createCrossShadeUI();
+// createCrossShadeUI();
