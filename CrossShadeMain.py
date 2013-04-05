@@ -25,8 +25,8 @@ def processCrossSections():
     return
 
   numCrossSections = len(crossSections)
-  crossHairPos = [[0]*numCrossSections for x in range(numCrossSections, 0, -1)]  
-  crossHairTan = [[0]*numCrossSections for x in range(numCrossSections, 0, -1)]
+  crossHairPos = [[None]*numCrossSections for x in range(numCrossSections, 0, -1)]  
+  crossHairTan = [[None]*numCrossSections for x in range(numCrossSections, 0, -1)]
 
   for ci in range(numCrossSections):
     for cj in range(ci+1, numCrossSections):
