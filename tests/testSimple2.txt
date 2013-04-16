@@ -1,0 +1,25 @@
+// check if n_i and n_j correct
+spaceLocator -p -0.9535   0.8585 1;
+spaceLocator -p -0.1976    -1.2678 1;
+
+// t_ij cross t_ji = n_ij
+$t_ij = {-0.13086780552598704, -0.9913998272527651, 0.7264};
+$t_ji = {0.72730025766706086, -0.6863194119339967, -0.7264};
+$n_ij = crossProduct ( $t_ij, $t_ji , 0, 0 )
+
+// place final n_ij
+$x_ij = `getAttr locator1.localPosition`;
+spaceLocator( "-p", $x_ij[0]+$n_ij[0], $x_ij[1]+$n_ij[1], $x_ij[2]+$n_ij[2])
+
+/*
+0 : curve2
+1 : curve1
+x_(0,0) : None
+x_(0,1) : [-5.0213189709597881, 1.1849973142216936, 0.0]
+x_(1,0) : None
+x_(1,1) : None
+t_(0,0) : None
+t_(0,1) : [-0.13086780552598704, -0.9913998272527651, 0.0]
+t_(1,0) : [0.72730025766706086, -0.6863194119339967, 0.0]
+t_(1,1) : None
+*/
