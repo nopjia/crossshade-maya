@@ -17,22 +17,26 @@ function [ x ] = NLCM( N, NC, M, MI)
         
         % Nonlinear inequality constraints
         NIC = zeros(1, NC*4);
+        c1 = 0;
         for k=1:N
             for l=k:N
                 if k ~= l && MI(k,l) == 1
-                    NIC(4*(k-1) + 1) = (x(3*(k-1) + 1)*x(3*(l-1) + 1) + ...
+                    % Normals dot product
+                    NIC(4*(c1) + 1) = (x(3*(k-1) + 1)*x(3*(l-1) + 1) + ...
                                        x(3*(k-1) + 2)*x(3*(l-1) + 2) + 1.0) - e;
                     
-                    NIC(4*(k-1) + 2) = -(x(3*(k-1) + 1)*x(3*(l-1) + 1) + ...
+                    NIC(4*(c1) + 2) = -(x(3*(k-1) + 1)*x(3*(l-1) + 1) + ...
                                        x(3*(k-1) + 2)*x(3*(l-1) + 2) + 1.0) - e;
                     
-                    NIC(4*(k-1) + 3) = (M(k,1)*M(l,1) + M(k,2) + M(l,2) + x(3*k)*x(3*l)) - e;
-                    
-                    NIC(4*(k-1) + 4) = -(M(k,1)*M(l,1) + M(k,2) + M(l,2) + x(3*k)*x(3*l)) - e;
+                    % Tangents dot product
+                    NIC(4*(c1) + 3) = (M(k,1)*M(l,1) + M(k,2)*M(l,2) + x(3*k)*x(3*l)) - e;
+                    NIC(4*(c1) + 4) = -(M(k,1)*M(l,1) + M(k,2)*M(l,2) + x(3*k)*x(3*l)) - e;
+                    c1 = c1 + 1;
                 end
             end
         end
         c = NIC;
+        c
         
         % Nonlinear equality constraints
 
@@ -43,6 +47,7 @@ function [ x ] = NLCM( N, NC, M, MI)
         TN = zeros(1,N);
         for j=1:N
             TN(j) = M(j,1)*x(3*(j-1) + 1) + M(j,2)*x(3*(j-1) + 2) + x(3*j);
+            %disp(3*(j));
         end
         ceq = TN;
 
@@ -70,20 +75,23 @@ function [ x ] = NLCM( N, NC, M, MI)
         end
         
         f = tempF;
+        %f
     end
 
     % Initial guess vector
     % n1, n2, t_z
     % BASED ON ORIENTATION CHOICE
-    x0 = zeros(1,N*3);
-    for i=1:(N*3) 
+    %x0 = zeros(1,N*3);
+    %for i=1:(N*3) 
+    x0 = zeros(1,N*2 + NC*2);
+    for i=1:(N*2 + NC*2) 
         % 0 is initial guess for t_z
-        if mod(i,3) == 0 
-            x0(i) = 0;
+        %if mod(i,3) == 0 
+         %   x0(i) = 0;
         % otherwise initial guess should be based on orientation choice
-        else
+        %else
             x0(i) = 1;    
-        end
+        %end
     end
     %x0 
 
