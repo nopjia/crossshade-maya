@@ -54,14 +54,14 @@ def readCrossSections():
         
         pi = cmds.pointOnCurve(csNam[ci], pr=intT_i, p=True)        
         chPos[ci][cj] = np.array(pi)  # save
-        cmds.spaceLocator(p=pi)   # place locator        
+        #cmds.spaceLocator(p=pi)   # place locator        
         
         t_ij = cmds.pointOnCurve(csNam[ci], pr=intT_i, nt=True)
         chTan[ci][cj] = np.array(t_ij)
-        cmds.spaceLocator( p=(chPos[ci][cj]+chTan[ci][cj]).tolist() )
+        #cmds.spaceLocator( p=(chPos[ci][cj]+chTan[ci][cj]).tolist() )
         t_ji = cmds.pointOnCurve(csNam[cj], pr=intT_j, nt=True)
         chTan[cj][ci] = np.array(t_ji)
-        cmds.spaceLocator( p=(chPos[ci][cj]+chTan[cj][ci]).tolist() )
+        #cmds.spaceLocator( p=(chPos[ci][cj]+chTan[cj][ci]).tolist() )
         
         print "(%s,%s) processed" % (ci, cj)
         
@@ -181,7 +181,7 @@ def minOptimize():
   return %s""" % (funcString)) in globals(), locals()
   
   # run optimization
-  x0 = [1 for x in range(csNum*2+chNum*2)]  # initial guesses
+  x0 = [-1 for x in range(csNum*2+chNum*2)]  # initial guess
   res = minimize(cmFunction, x0, method='SLSQP', constraints=tuple(consList), options={'disp': True})
   
   # store cross section plane normals
@@ -228,4 +228,4 @@ def runCrossShade():
   printCrossSectionData1()
   minOptimize()
   
-runCrossShade()
+#runCrossShade()
