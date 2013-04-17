@@ -210,14 +210,17 @@ def minOptimize():
         nor = np.cross(chTan[i][j], chTan[j][i])
         
         # normal flip hack
-        if nor[2] < 0:
-          nor = -nor
+        if nor[2] < 0: nor = -nor
         
-        chNor[i][j] = nor        
+        chNor[i][j] = nor
         print "n_(%s,%s) : %s" % (i, j, chNor[i][j])
         
         cmds.spaceLocator( p=(chPos[i][j]+chNor[i][j]).tolist() )
-      
+
+#----------------------------------------------------------
+# RUN COMMAND
+#----------------------------------------------------------
+        
 def runCrossShade():
   readCrossSections()
   printCrossSectionData1()
