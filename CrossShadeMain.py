@@ -17,8 +17,8 @@ def readCrossSections():
   global crossHairPos  
   global crossHairTan  
 
-  mel.eval('layerEditorSelectObjects layerCross;')
-  crossSections = mel.eval('ls -sl -type transform')
+  mel.eval("layerEditorSelectObjects layerCross;")
+  crossSections = mel.eval("ls -sl -type transform")
 
   # no curve drawn
   if not crossSections:
@@ -49,10 +49,10 @@ def readCrossSections():
         crossHairTan[cj][ci] = t_ji;
         cmds.spaceLocator(p=[ p+t for p,t in zip(pi,t_ji) ])
         
-        print '(%s,%s) processed' % (ci, cj)
+        print "(%s,%s) processed" % (ci, cj)
         
       else:
-        print '(%s,%s) no intersect' % (ci, cj)
+        print "(%s,%s) no intersect" % (ci, cj)
 
   # clear all selection
   mel.eval("select -cl")
@@ -73,6 +73,7 @@ def printCrossSectionData1():
   for i in range(numCrossSections):
     for j in range(numCrossSections):
       print "t_(%s,%s) : %s" % (i, j, crossHairTan[i][j])
+
       
 # command
 class scriptedCommand(OpenMayaMPx.MPxCommand):
