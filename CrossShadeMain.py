@@ -11,7 +11,7 @@ crossSections = None
 crossHairPos  = None
 crossHairTan  = None
 
-def processCrossSections():
+def readCrossSections():
   global numCrossSections
   global crossSections 
   global crossHairPos  
@@ -49,16 +49,20 @@ def processCrossSections():
         crossHairTan[cj][ci] = t_ji;
         cmds.spaceLocator(p=[ p+t for p,t in zip(pi,t_ji) ])
         
-        print 'process (%s,%s)' % (ci, cj)
+        print '(%s,%s) processed' % (ci, cj)
         
       else:
-        print 'no curve intersect'
+        print '(%s,%s) no intersect' % (ci, cj)
 
   # clear all selection
   mel.eval("select -cl")
         
-  # print
-  
+def printCrossSectionData1():
+  global numCrossSections
+  global crossSections 
+  global crossHairPos  
+  global crossHairTan  
+    
   for i in range(numCrossSections):
     print "%s : %s" % (i, crossSections[i])
   
@@ -69,14 +73,15 @@ def processCrossSections():
   for i in range(numCrossSections):
     for j in range(numCrossSections):
       print "t_(%s,%s) : %s" % (i, j, crossHairTan[i][j])
-        
+      
 # command
 class scriptedCommand(OpenMayaMPx.MPxCommand):
   def __init__(self):
     OpenMayaMPx.MPxCommand.__init__(self)
     
   def doIt(self, argList):
-    processCrossSections()
+    readCrossSections()
+    printCrossSectionData1()
 
 # Creator
 def cmdCreator():
