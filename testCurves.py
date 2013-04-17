@@ -50,15 +50,15 @@ def readCrossSections():
         intT_j = intersects[1]
         
         pi = cmds.pointOnCurve(csNam[ci], pr=intT_i, p=True)        
-        chPos[ci][cj] = pi;  # save
+        chPos[ci][cj] = np.array(pi)  # save
         cmds.spaceLocator(p=pi)   # place locator        
         
         t_ij = cmds.pointOnCurve(csNam[ci], pr=intT_i, nt=True)
-        chTan[ci][cj] = t_ij;
-        cmds.spaceLocator(p=[ p+t for p,t in zip(pi,t_ij) ])
+        chTan[ci][cj] = np.array(t_ij)
+        cmds.spaceLocator( p=(chPos[ci][cj]+chTan[ci][cj]).tolist() )
         t_ji = cmds.pointOnCurve(csNam[cj], pr=intT_j, nt=True)
-        chTan[cj][ci] = t_ji;
-        cmds.spaceLocator(p=[ p+t for p,t in zip(pi,t_ji) ])
+        chTan[cj][ci] = np.array(t_ji)
+        cmds.spaceLocator( p=(chPos[ci][cj]+chTan[cj][ci]).tolist() )
         
         print "(%s,%s) processed" % (ci, cj)
         
@@ -108,7 +108,7 @@ def minOptimize():
   tanPairIdx = csNum*2
   for i in range(csNum):
     for j in range(i+1, csNum):
-      if (chTan[i][j]):
+      if (chTan[i][j] is not None):
         
         # -e < n_i . n_j < e
         consList.append({
@@ -158,7 +158,7 @@ def minOptimize():
   tanPairIdx = csNum*2
   for i in range(csNum):
     for j in range(i+1, csNum):
-      if (chTan[i][j]):
+      if (chTan[i][j] is not None):
         ni = "np.array([x["+str(i*2)+"], x["+str(i*2+1)+"], 1])"
         nj = "np.array([x["+str(j*2)+"], x["+str(j*2+1)+"], 1])"
         tij = "np.array(["+str(chTan[i][j][0])+", "+str(chTan[i][j][1])+", x["+str(tanPairIdx)+"]])"
@@ -187,14 +187,14 @@ def minOptimize():
   
   # store cross section plane normals
   for i in range(csNum):
-    csNor[i] = [res.x[i*2], res.x[i*2+1], 1]
+    csNor[i] = np.array([res.x[i*2], res.x[i*2+1], 1])
     print "n_%s : %s" % (i, csNor[i])
   
   # store t_ij_z's
   tanPairIdx = csNum*2
   for i in range(csNum):
     for j in range(i+1, csNum):
-      if (chTan[i][j]):
+      if (chTan[i][j] is not None):
         chTan[i][j][2] = res.x[tanPairIdx]
         chTan[j][i][2] = res.x[tanPairIdx+1]
         
@@ -206,8 +206,17 @@ def minOptimize():
   # solve for n_ij
   for i in range(csNum):
     for j in range(i+1, csNum):
-      if (chTan[i][j]):
-        chNor[i][j] = None
+      if (chTan[i][j] is not None):
+        nor = np.cross(chTan[i][j], chTan[j][i])
+        
+        # normal flip hack
+        if nor[2] < 0:
+          nor = -nor
+        
+        chNor[i][j] = nor        
+        print "n_(%s,%s) : %s" % (i, j, chNor[i][j])
+        
+        cmds.spaceLocator( p=(chPos[i][j]+chNor[i][j]).tolist() )
       
 def runCrossShade():
   readCrossSections()
