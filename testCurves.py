@@ -76,6 +76,7 @@ def printCrossSectionData1():
     for j in range(csN):
       print "t_(%s,%s) : %s" % (i, j, chT[i][j])
 
+consList
 def minOptimize(): 
   global csN
   global csC
@@ -86,6 +87,7 @@ def minOptimize():
   EPSILON = 0.1
   
   # construct constraints
+  global consList
   consList = []
   tanPairIdx = 0
   for i in range(csN):
@@ -95,12 +97,12 @@ def minOptimize():
         # -e < n_i . n_j < e
         consList.append({
           "type": "ineq",
-          "fun" : lambda x: (x[i*2]*x[j*2] + x[i*2+1]*x[j*2+1] + 1.0) + e,
+          "fun" : lambda x: (x[i*2]*x[j*2] + x[i*2+1]*x[j*2+1] + 1.0) + EPSILON,
           "test" : "(x[%s]*x[%s] + x[%s]*x[%s] + 1.0) + e" % (i*2,j*2,i*2+1,j*2+1)
         })
         consList.append({
           "type": "ineq",
-          "fun" : lambda x: -(x[i*2]*x[j*2] + x[i*2+1]*x[j*2+1] + 1.0) + e,
+          "fun" : lambda x: -(x[i*2]*x[j*2] + x[i*2+1]*x[j*2+1] + 1.0) + EPSILON,
           "test" : "-(x[%s]*x[%s] + x[%s]*x[%s] + 1.0) + e" % (i*2,j*2,i*2+1,j*2+1)
         })
         
@@ -108,13 +110,13 @@ def minOptimize():
         consList.append({
           "type": "ineq",
           "fun" : lambda x: 
-            (chT[i][j][0]*chT[j][i][0] + chT[i][j][0]*chT[j][i][0] + x[csN*2+tanPairIdx]*x[csN*2+1+tanPairIdx]) + e,
+            (chT[i][j][0]*chT[j][i][0] + chT[i][j][1]*chT[j][i][1] + x[csN*2+tanPairIdx]*x[csN*2+1+tanPairIdx]) + EPSILON,
           "test": "(chT[i][j][0]*chT[j][i][0] + chT[i][j][0]*chT[j][i][0] + x[%s]*x[%s]) + e" % (csN*2+tanPairIdx, csN*2+1+tanPairIdx)            
         })
         consList.append({
           "type": "ineq",
           "fun" : lambda x: 
-            -(chT[i][j][0]*chT[j][i][0] + chT[i][j][0]*chT[j][i][0] + x[csN*2+tanPairIdx]*x[csN*2+1+tanPairIdx]) + e,
+            -(chT[i][j][0]*chT[j][i][0] + chT[i][j][1]*chT[j][i][1] + x[csN*2+tanPairIdx]*x[csN*2+1+tanPairIdx]) + EPSILON,
           "test": "-(chT[i][j][0]*chT[j][i][0] + chT[i][j][0]*chT[j][i][0] + x[%s]*x[%s]) + e" % (csN*2+tanPairIdx, csN*2+1+tanPairIdx)
         })
         
@@ -163,14 +165,14 @@ def minOptimize():
   # define function
   funcDefString = ("""def cmFunction(x):
   return %s""" % (funcString))
-  exec(funcDefString)
+  exec(funcDefString) in globals(), locals()
   
   print cmFunction
   
   # initial guesses
   x0 = [-1 for x in range(csN*2+chN*2)]
-  #res = minimize(cmFunction, x0, method='SLSQP', constraints=cons, options={'xtol': 1e-8, 'disp': True})
-  
+  res = minimize(cmFunction, x0, method='SLSQP', constraints=tuple(consList), options={'disp': True})
+  print res
       
 def runCrossShade():
   readCrossSections()
