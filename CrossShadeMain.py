@@ -9,9 +9,12 @@ import numpy as np
 from scipy.optimize import minimize
 
 
-#----------------------------------------------------------
+#--------------------------------------------------------------------
 # ALGORITHM
-#----------------------------------------------------------
+#--------------------------------------------------------------------
+
+def normalize(v):
+  return v/np.linalg.norm(v)
 
 csNum = 0       # cross section count number
 csNam = None    # cross section curves names
@@ -182,20 +185,16 @@ def minOptimize():
   print funcString
   
   # define function
-  funcDefString = ("""def cmFunction(x):
-  return %s""" % (funcString))
-  exec(funcDefString) in globals(), locals()
+  exec ("""def cmFunction(x):
+  return %s""" % (funcString)) in globals(), locals()
   
-  print cmFunction
-  
-  # initial guesses
-  x0 = [1 for x in range(csNum*2+chNum*2)]
+  # run optimization
+  x0 = [1 for x in range(csNum*2+chNum*2)]  # initial guess
   res = minimize(cmFunction, x0, method='SLSQP', constraints=tuple(consList), options={'disp': True})
-  print res.x
   
   # store cross section plane normals
   for i in range(csNum):
-    csNor[i] = np.array([res.x[i*2], res.x[i*2+1], 1])
+    csNor[i] = normalize( np.array([res.x[i*2], res.x[i*2+1], 1]) )    
     print "n_%s : %s" % (i, csNor[i])
   
   # store t_ij_z's
@@ -205,6 +204,9 @@ def minOptimize():
       if (chTan[i][j] is not None):
         chTan[i][j][2] = res.x[tanPairIdx]
         chTan[j][i][2] = res.x[tanPairIdx+1]
+        
+        chTan[i][j] = normalize(chTan[i][j])
+        chTan[j][i] = normalize(chTan[j][i])
         
         print "t_(%s,%s) : %s" % (i, j, chTan[i][j])
         print "t_(%s,%s) : %s" % (j, i, chTan[j][i])
@@ -220,15 +222,15 @@ def minOptimize():
         # normal flip hack
         if nor[2] < 0: nor = -nor
         
-        chNor[i][j] = nor
+        chNor[i][j] = normalize(nor)
         print "n_(%s,%s) : %s" % (i, j, chNor[i][j])
         
         cmds.spaceLocator( p=(chPos[i][j]+chNor[i][j]).tolist() )
 
 
-#----------------------------------------------------------
+#--------------------------------------------------------------------
 # COMMAND
-#----------------------------------------------------------
+#--------------------------------------------------------------------
 
 kPluginCmdName = "CrossShadeCmd"
 
