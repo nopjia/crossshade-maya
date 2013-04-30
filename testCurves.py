@@ -22,16 +22,26 @@ def rotation(t, u):
   ]
 
 class CrossSection:
-  def __init__(self):
+  def __init__(self, i):
+    self.id = i
     self.name = None
     self.nor = None
+    self.ch = []   # sorted in t order along curve
+    
+  def __str__(self):
+    return "cs(%s) %s" % (self.id, self.name)
     
 class CrossHair:
-  def __init__(self):
+  def __init__(self,i,j):
+    self.i = i
+    self.j = j
     self.t = -1
     self.pos = None
     self.tan = None
     self.nor = None
+    
+  def __str__(self):
+    return "ch(%s,%s) @ t=%s" % (self.i, self.j, self.t)
   
 csNum = 0       # cross section count number
 cs = None    # cross section curves names
@@ -54,8 +64,9 @@ def readCrossSections():
   # init globals
   
   csNum = len(curveNames)
-  cs = [CrossSection() for x in range(csNum)]
+  cs = [None for x in range(csNum)]
   for i in range(csNum):
+    cs[i] = CrossSection(i)
     cs[i].name = curveNames[i]
   
   chNum = 0
@@ -70,22 +81,22 @@ def readCrossSections():
       rawIntersects = cmds.curveIntersect(cs[i].name, cs[j].name, useDirection=True, direction=(0,0,1))
       
       if rawIntersects:
-        ch[i][j] = CrossHair()
-        ch[j][i] = CrossHair()
+        ch[i][j] = CrossHair(i,j)
+        ch[j][i] = CrossHair(j,i)
       
         intersects = [float(k) for k in rawIntersects.split()]
         ch[i][j].t = intersects[0]
         ch[j][i].t = intersects[1]
         
-        pi = cmds.pointOnCurve(csNam[i], pr=ch[i][j].t, p=True)        
+        pi = cmds.pointOnCurve(cs[i].name, pr=ch[i][j].t, p=True)        
         ch[i][j].pos = np.array(pi)  # save
         ch[j][i].pos = np.array(pi)
         #cmds.spaceLocator(p=pi)   # place locator        
         
-        t_ij = cmds.pointOnCurve(csNam[i], pr=ch[i][j].t, nt=True)
+        t_ij = cmds.pointOnCurve(cs[i].name, pr=ch[i][j].t, nt=True)
         ch[i][j].tan = np.array(t_ij)
         
-        t_ji = cmds.pointOnCurve(csNam[j], pr=ch[j][i].t, nt=True)
+        t_ji = cmds.pointOnCurve(cs[j].name, pr=ch[j][i].t, nt=True)
         ch[j][i].tan = np.array(t_ji)
         
         
@@ -98,7 +109,15 @@ def readCrossSections():
   
   # clear all selection
   mel.eval("select -cl")
+
+  # store sorted list of ch for each cs
+  for i in range(csNum):
+    for j in range(csNum):
+      if ch[i][j] is not None:
+        cs[i].ch.append(ch[i][j])
         
+    cs[i].ch = sorted(cs[i].ch, key=lambda ch: ch.t)
+  
 def printCrossSectionData1():
   global csNum
   global cs
@@ -208,8 +227,8 @@ def minOptimize():
   
   # store cross section plane normals
   for i in range(csNum):
-    csNor[i] = normalize( np.array([res.x[i*2], res.x[i*2+1], 1]) )    
-    print "n_%s : %s" % (i, csNor[i])
+    cs[i].nor = normalize( np.array([res.x[i*2], res.x[i*2+1], 1]) )    
+    print "n_%s : %s" % (i, cs[i].nor)
   
   # store t_ij_z's
   tanPairIdx = csNum*2
@@ -268,6 +287,18 @@ def propagateCurve():
   global ch
   
   T_STEP = .1
+  
+  for curve in cs:
+    for k in len(curve.ch):
+      if k < len(curve.ch)-1:
+        # curr and next crosshairs
+        curr = curve.ch[k]
+        next = curve.ch[k+1]
+        
+        for t in drange(ch[curr.i][curr.j].t, ch[next.i][next.j].t, T_STEP):
+          nor = getCHNormAtT(curr.i, curr.j, t)
+          pos = np.array(cmds.pointOnCurve(curve.name, pr=t, p=True))
+          cmds.spaceLocator( p=(pos+nor).tolist() )    
 
 def propagatePatch():
   print "propagate coons patch"
