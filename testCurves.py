@@ -256,6 +256,7 @@ def minOptimize():
         if nor[2] < 0: nor = -nor
         
         ch[i][j].nor = normalize(nor)
+        ch[j][i].nor = nor
         print "n_(%s,%s) : %s" % (i, j, ch[i][j].nor)
         
         cmds.spaceLocator( p=(ch[i][j].pos+ch[i][j].nor).tolist() )
@@ -279,7 +280,7 @@ def getCHNormAtT(chI, chJ, tparam):
   rot = rotation(angle,axis)
   
   return normalize(np.dot(rot, origN))
-        
+  
 def propagateCurve():
   global csNum
   global cs
@@ -289,16 +290,21 @@ def propagateCurve():
   T_STEP = .1
   
   for curve in cs:
-    for k in len(curve.ch):
-      if k < len(curve.ch)-1:
-        # curr and next crosshairs
-        curr = curve.ch[k]
-        next = curve.ch[k+1]
-        
-        for t in drange(ch[curr.i][curr.j].t, ch[next.i][next.j].t, T_STEP):
-          nor = getCHNormAtT(curr.i, curr.j, t)
-          pos = np.array(cmds.pointOnCurve(curve.name, pr=t, p=True))
-          cmds.spaceLocator( p=(pos+nor).tolist() )    
+    chi = 0
+  
+    # step from first to last intersection
+    for t in drange(curve.ch[0].t, curve.ch[-1].t, T_STEP):
+      if chi < len(curve.ch)-1: 
+        while t > curve.ch[chi+1].t: chi+=1
+      
+      nor1 = getCHNormAtT(curve.ch[chi].i, curve.ch[chi].j, t)
+      nor2 = getCHNormAtT(curve.ch[chi+1].i, curve.ch[chi+1].j, t)
+      
+      blendT = (t-curve.ch[chi].t) / (curve.ch[chi+1].t-curve.ch[chi].t)
+      nor = blendT*nor2+(1-blendT)*nor1
+      
+      pos = np.array(cmds.pointOnCurve(curve.name, pr=t, p=True))
+      cmds.spaceLocator( p=(pos+nor).tolist() )
 
 def propagatePatch():
   print "propagate coons patch"
