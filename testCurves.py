@@ -3,6 +3,12 @@ import maya.mel as mel
 import numpy as np
 import scipy as sp
 
+def drange(start, stop, step):
+  r = start
+  while r < stop:
+  	yield r
+  	r += step
+
 def normalize(v):
   return v/np.linalg.norm(v)
 
@@ -249,7 +255,7 @@ def getCHNormAtT(chI, chJ, tparam):
   origT1 = chTan[chI][chJ]
   origT2 = chTan[chJ][chI]
   targetT = cmds.pointOnCurve(csNam[chI], pr=tparam, nt=True)   # z comp incorrect
-  targetT[2] = -(origT2[0]*targetT[0]+origT2[1]*targetT[1])/origT2[2]   # solve for z comp
+  targetT[2] = -(origT2[0]*targetT[0]+origT2[1]*targetT[1])/origT2[2]   # solve t_z, t2 dot t = 0
     
   crossProd = np.cross(origT1, targetT)
   axis = normalize(crossProd)
@@ -259,7 +265,16 @@ def getCHNormAtT(chI, chJ, tparam):
   return normalize(np.dot(rot, origN))
         
 def propagateCurve():
-  print "propagate along curve"
+  global csNum
+  global csNam
+  global csNor
+  global chNum
+  global chTee
+  global chPos
+  global chTan
+  global chNor
+  
+  T_STEP = .1
 
 def propagatePatch():
   print "propagate coons patch"
