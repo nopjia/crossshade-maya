@@ -21,41 +21,47 @@ def rotation(t, u):
     [u[2]*u[0]*(1-np.cos(t))-u[1]*np.sin(t), u[2]*u[1]*(1-np.cos(t))+u[0]*np.sin(t), np.cos(t)+u[2]*u[2]]
   ]
 
+class CrossSection:
+  def __init__(self):
+    self.name = None
+    self.nor = None
+    
+class CrossHair:
+  def __init__(self):
+    self.t = -1
+    self.pos = None
+    self.tan = None
+    self.nor = None
+  
 csNum = 0       # cross section count number
-csNam = None    # cross section curves names
-csNor = None    # cross section normals
+cs = None    # cross section curves names
 chNum = 0       # cross hair count number
-chTee = None    # cross hair t-parameter
-chPos = None    # cross hair positions
-chTan = None    # cross hair tangents
-chNor = None    # cross hair normals
+ch = None    # cross hair t-parameter
 
 def readCrossSections():
   global csNum
-  global csNam
-  global csNor
+  global cs
   global chNum
-  global chTee
-  global chPos
-  global chTan
-  global chNor
+  global ch
 
   mel.eval("layerEditorSelectObjects layerCross;")
-  csNam = mel.eval("ls -sl -type transform")
+  curveNames = mel.eval("ls -sl -type transform")
 
   # no curve drawn
-  if not csNam:
+  if not curveNames:
     return
   
   # init globals
   
-  csNum = len(csNam)
-  csNor = [None for x in range(csNum)]
+  csNum = len(curveNames)
+  cs = [CrossSection() for x in range(csNum)]
+  for i in range(csNum):
+    cs[i].name = curveNames[i]
+  
   chNum = 0
-  chTee = [[-1]*csNum for x in range(csNum, 0, -1)]
-  chPos = [[None]*csNum for x in range(csNum, 0, -1)]
-  chTan = [[None]*csNum for x in range(csNum, 0, -1)]
-  chNor = [[None]*csNum for x in range(csNum, 0, -1)]
+  ch = [[] for x in range(csNum)]
+  for i in range(csNum):
+    ch[i] = [CrossHair() for x in range(csNum)]
 
   
   # process intersections
@@ -63,24 +69,24 @@ def readCrossSections():
   for i in range(csNum):
     for j in range(i+1, csNum):
 
-      rawIntersects = cmds.curveIntersect(csNam[i], csNam[j], useDirection=True, direction=(0,0,1))
+      rawIntersects = cmds.curveIntersect(cs[i].name, cs[j].name, useDirection=True, direction=(0,0,1))
       
       if rawIntersects:
         intersects = [float(k) for k in rawIntersects.split()]
-        chTee[i][j] = intersects[0]
-        chTee[j][i] = intersects[1]
+        ch[i][j].t = intersects[0]
+        ch[j][i].t = intersects[1]
         
-        pi = cmds.pointOnCurve(csNam[i], pr=chTee[i][j], p=True)        
-        chPos[i][j] = np.array(pi)  # save
-        chPos[j][i] = np.array(pi)
+        pi = cmds.pointOnCurve(csNam[i], pr=ch[i][j].t, p=True)        
+        ch[i][j].pos = np.array(pi)  # save
+        ch[j][i].pos = np.array(pi)
         #cmds.spaceLocator(p=pi)   # place locator        
         
-        t_ij = cmds.pointOnCurve(csNam[i], pr=chTee[i][j], nt=True)
-        chTan[i][j] = np.array(t_ij)
-        #cmds.spaceLocator( p=(chPos[i][j]+chTan[i][j]).tolist() )
-        t_ji = cmds.pointOnCurve(csNam[j], pr=chTee[j][i], nt=True)
-        chTan[j][i] = np.array(t_ji)
-        #cmds.spaceLocator( p=(chPos[i][j]+chTan[j][i]).tolist() )
+        t_ij = cmds.pointOnCurve(csNam[i], pr=ch[i][j].t, nt=True)
+        ch[i][j].tan = np.array(t_ij)
+        
+        t_ji = cmds.pointOnCurve(csNam[j], pr=ch[j][i].t, nt=True)
+        ch[j][i].tan = np.array(t_ji)
+        
         
         print "(%s,%s) processed" % (i, j)
         
@@ -94,24 +100,23 @@ def readCrossSections():
         
 def printCrossSectionData1():
   global csNum
-  global csNam
-  global csNor
+  global cs
   global chNum
-  global chTee
-  global chPos
-  global chTan
-  global chNor
+  global ch
   
   for i in range(csNum):
-    print "%s : %s" % (i, csNam[i])
+    print "%s : %s" % (i, cs[i].name)
   
   for i in range(csNum):
     for j in range(csNum):
-      print "x_(%s,%s) : at %s : %s" % (i, j, chTee[i][j], chPos[i][j])
+      print "x_(%s,%s) : at %s : %s" % (i, j, ch[i][j].t, ch[i][j].pos)
       
   for i in range(csNum):
     for j in range(csNum):
-      print "t_(%s,%s) : %s" % (i, j, chTan[i][j])
+      print "t_(%s,%s) : %s" % (i, j, ch[i][j].tan)
+      
+readCrossSections()
+printCrossSectionData1()
 
 #consList
 def minOptimize(): 
