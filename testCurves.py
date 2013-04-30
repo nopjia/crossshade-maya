@@ -59,10 +59,8 @@ def readCrossSections():
     cs[i].name = curveNames[i]
   
   chNum = 0
-  ch = [[] for x in range(csNum)]
-  for i in range(csNum):
-    ch[i] = [CrossHair() for x in range(csNum)]
-
+  ch = [[None]*csNum for x in range(csNum)]
+  
   
   # process intersections
   
@@ -72,6 +70,9 @@ def readCrossSections():
       rawIntersects = cmds.curveIntersect(cs[i].name, cs[j].name, useDirection=True, direction=(0,0,1))
       
       if rawIntersects:
+        ch[i][j] = CrossHair()
+        ch[j][i] = CrossHair()
+      
         intersects = [float(k) for k in rawIntersects.split()]
         ch[i][j].t = intersects[0]
         ch[j][i].t = intersects[1]
@@ -109,25 +110,20 @@ def printCrossSectionData1():
   
   for i in range(csNum):
     for j in range(csNum):
-      print "x_(%s,%s) : at %s : %s" % (i, j, ch[i][j].t, ch[i][j].pos)
+      if ch[i][j] is not None:
+        print "x_(%s,%s) : at %s : %s" % (i, j, ch[i][j].t, ch[i][j].pos)
       
   for i in range(csNum):
     for j in range(csNum):
-      print "t_(%s,%s) : %s" % (i, j, ch[i][j].tan)
-      
-readCrossSections()
-printCrossSectionData1()
+      if ch[i][j] is not None:
+        print "t_(%s,%s) : %s" % (i, j, ch[i][j].tan)
 
 #consList
 def minOptimize(): 
   global csNum
-  global csNam
-  global csNor
+  global cs
   global chNum
-  global chTee
-  global chPos
-  global chTan
-  global chNor
+  global ch
   
   EPSILON = 0.1
   
@@ -137,7 +133,7 @@ def minOptimize():
   tanPairIdx = csNum*2
   for i in range(csNum):
     for j in range(i+1, csNum):
-      if (chTan[i][j] is not None):
+      if (ch[i][j] is not None):
         
         # -e < n_i . n_j < e
         consList.append({
@@ -154,13 +150,13 @@ def minOptimize():
           "type": "ineq",
           "fun" : (lambda tijx, tijy, tjix, tjiy, tanPairIdx:
             lambda x: (tijx*tjix + tijy*tjiy + x[tanPairIdx]*x[tanPairIdx+1]) + EPSILON)
-            (chTan[i][j][0], chTan[i][j][1], chTan[j][i][0], chTan[j][i][1], tanPairIdx)
+            (ch[i][j].tan[0], ch[i][j].tan[1], ch[j][i].tan[0], ch[j][i].tan[1], tanPairIdx)
         })
         consList.append({
           "type": "ineq",
           "fun" : (lambda tijx, tijy, tjix, tjiy, tanPairIdx:
             lambda x: -(tijx*tjix + tijy*tjiy + x[tanPairIdx]*x[tanPairIdx+1]) + EPSILON)
-            (chTan[i][j][0], chTan[i][j][1], chTan[j][i][0], chTan[j][i][1], tanPairIdx)
+            (ch[i][j].tan[0], ch[i][j].tan[1], ch[j][i].tan[0], ch[j][i].tan[1], tanPairIdx)
         })
         
         # t_ij . n_i = 0
@@ -168,14 +164,14 @@ def minOptimize():
           "type": "eq",
           "fun" : (lambda tijx, tijy, i, tanPairIdx:
             lambda x: (tijx*x[i*2] + tijy*x[i*2+1] + x[tanPairIdx]) )
-            (chTan[i][j][0], chTan[i][j][1], i, tanPairIdx)
+            (ch[i][j].tan[0], ch[i][j].tan[1], i, tanPairIdx)
         })
         # t_ji . n_j = 0
         consList.append({
           "type": "eq",
           "fun" : (lambda tjix, tjiy, j, tanPairIdx:
             lambda x: (tjix*x[j*2] + tjiy*x[j*2+1] + x[tanPairIdx+1]) )
-            (chTan[j][i][0], chTan[j][i][1], j, tanPairIdx)
+            (ch[j][i].tan[0], ch[j][i].tan[1], j, tanPairIdx)
         })
         
         # print "constraints for (%s,%s)" % (i, j)
@@ -187,11 +183,11 @@ def minOptimize():
   tanPairIdx = csNum*2
   for i in range(csNum):
     for j in range(i+1, csNum):
-      if (chTan[i][j] is not None):
+      if (ch[i][j] is not None):
         ni = "np.array([x["+str(i*2)+"], x["+str(i*2+1)+"], 1])"
         nj = "np.array([x["+str(j*2)+"], x["+str(j*2+1)+"], 1])"
-        tij = "np.array(["+str(chTan[i][j][0])+", "+str(chTan[i][j][1])+", x["+str(tanPairIdx)+"]])"
-        tji = "np.array(["+str(chTan[j][i][0])+", "+str(chTan[j][i][1])+", x["+str(tanPairIdx+1)+"]])"
+        tij = "np.array(["+str(ch[i][j].tan[0])+", "+str(ch[i][j].tan[1])+", x["+str(tanPairIdx)+"]])"
+        tji = "np.array(["+str(ch[j][i].tan[0])+", "+str(ch[j][i].tan[1])+", x["+str(tanPairIdx+1)+"]])"
         
         sum = "((np.power(np.linalg.norm(np.cross("+tji+","+ni+")),2)) + (np.power(np.linalg.norm(np.cross("+tij+","+nj+")),2)) + np.power(x["+str(tanPairIdx)+"],2) + np.power(x["+str(tanPairIdx+1)+"],2))"
         
@@ -219,47 +215,43 @@ def minOptimize():
   tanPairIdx = csNum*2
   for i in range(csNum):
     for j in range(i+1, csNum):
-      if (chTan[i][j] is not None):
-        chTan[i][j][2] = res.x[tanPairIdx]
-        chTan[j][i][2] = res.x[tanPairIdx+1]
+      if (ch[i][j] is not None):
+        ch[i][j].tan[2] = res.x[tanPairIdx]
+        ch[j][i].tan[2] = res.x[tanPairIdx+1]
         
-        chTan[i][j] = normalize(chTan[i][j])
-        chTan[j][i] = normalize(chTan[j][i])
+        ch[i][j].tan = normalize(ch[i][j].tan)
+        ch[j][i].tan = normalize(ch[j][i].tan)
         
-        print "t_(%s,%s) : %s" % (i, j, chTan[i][j])
-        print "t_(%s,%s) : %s" % (j, i, chTan[j][i])
+        print "t_(%s,%s) : %s" % (i, j, ch[i][j].tan)
+        print "t_(%s,%s) : %s" % (j, i, ch[j][i].tan)
         
         tanPairIdx += 2
         
   # solve for n_ij
   for i in range(csNum):
     for j in range(i+1, csNum):
-      if (chTan[i][j] is not None):
-        nor = np.cross(chTan[i][j], chTan[j][i])
+      if (ch[i][j] is not None):
+        nor = np.cross(ch[i][j].tan, ch[j][i].tan)
         
         # normal flip hack
         if nor[2] < 0: nor = -nor
         
-        chNor[i][j] = normalize(nor)
-        print "n_(%s,%s) : %s" % (i, j, chNor[i][j])
+        ch[i][j].nor = normalize(nor)
+        print "n_(%s,%s) : %s" % (i, j, ch[i][j].nor)
         
-        cmds.spaceLocator( p=(chPos[i][j]+chNor[i][j]).tolist() )
+        cmds.spaceLocator( p=(ch[i][j].pos+ch[i][j].nor).tolist() )
 
 # get interpolated normal of ch_ij along curve i at t
 def getCHNormAtT(chI, chJ, tparam):
   global csNum
-  global csNam
-  global csNor
+  global cs
   global chNum
-  global chTee
-  global chPos
-  global chTan
-  global chNor
+  global ch
 
-  origN = chNor[chI][chJ]
-  origT1 = chTan[chI][chJ]
-  origT2 = chTan[chJ][chI]
-  targetT = cmds.pointOnCurve(csNam[chI], pr=tparam, nt=True)   # z comp incorrect
+  origN =  ch[chI][chJ].nor
+  origT1 = ch[chI][chJ].tan
+  origT2 = ch[chJ][chI].tan
+  targetT = cmds.pointOnCurve(cs[chI].name, pr=tparam, nt=True)   # z comp incorrect
   targetT[2] = -(origT2[0]*targetT[0]+origT2[1]*targetT[1])/origT2[2]   # solve t_z, t2 dot t = 0
     
   crossProd = np.cross(origT1, targetT)
@@ -271,13 +263,9 @@ def getCHNormAtT(chI, chJ, tparam):
         
 def propagateCurve():
   global csNum
-  global csNam
-  global csNor
+  global cs
   global chNum
-  global chTee
-  global chPos
-  global chTan
-  global chNor
+  global ch
   
   T_STEP = .1
 
