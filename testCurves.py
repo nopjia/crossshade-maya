@@ -320,20 +320,23 @@ def createPatchMesh():
   numVertices = 8
   numFaceConnects = 24
 
-  vertices = []
-  vertices.append( OpenMaya.MFloatPoint(-cubeSize, -cubeSize, -cubeSize) )
-  vertices.append( OpenMaya.MFloatPoint( cubeSize, -cubeSize, -cubeSize) )
-  vertices.append( OpenMaya.MFloatPoint( cubeSize, -cubeSize,  cubeSize) )
-  vertices.append( OpenMaya.MFloatPoint(-cubeSize, -cubeSize,  cubeSize) )
-  vertices.append( OpenMaya.MFloatPoint(-cubeSize,  cubeSize, -cubeSize) )
-  vertices.append( OpenMaya.MFloatPoint(-cubeSize,  cubeSize,  cubeSize) )
-  vertices.append( OpenMaya.MFloatPoint( cubeSize,  cubeSize,  cubeSize) )
-  vertices.append( OpenMaya.MFloatPoint( cubeSize,  cubeSize, -cubeSize) )
+  vertices = [
+    vertices.append( OpenMaya.MFloatPoint(-cubeSize, -cubeSize, -cubeSize) ),
+    vertices.append( OpenMaya.MFloatPoint( cubeSize, -cubeSize, -cubeSize) ),
+    vertices.append( OpenMaya.MFloatPoint( cubeSize, -cubeSize,  cubeSize) ),
+    vertices.append( OpenMaya.MFloatPoint(-cubeSize, -cubeSize,  cubeSize) ),
+    vertices.append( OpenMaya.MFloatPoint(-cubeSize,  cubeSize, -cubeSize) ),
+    vertices.append( OpenMaya.MFloatPoint(-cubeSize,  cubeSize,  cubeSize) ),
+    vertices.append( OpenMaya.MFloatPoint( cubeSize,  cubeSize,  cubeSize) ),
+    vertices.append( OpenMaya.MFloatPoint( cubeSize,  cubeSize, -cubeSize) )
+  ]
 
   mVertices = OpenMaya.MFloatPointArray()
   for v in vertices:
     mVertices.append(v)
-    
+  
+  scriptUtil = OpenMaya.MScriptUtil()
+  
   faceConnects = [
     0, 1, 2, 3,
     4, 5, 6, 7,
@@ -343,8 +346,7 @@ def createPatchMesh():
     1, 7, 6, 2
   ]
   mFaceConnects = OpenMaya.MIntArray()
-  for fc in faceConnects:
-    mFaceConnects.append(fc)
+  scriptUtil.createIntArrayFromList( faceConnects,  mFaceConnects )
 
   mFaceCounts = OpenMaya.MIntArray(numFaces, 4)
 
