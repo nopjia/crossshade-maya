@@ -1,7 +1,14 @@
+import sys
+
+import maya.OpenMaya as OpenMaya
+import maya.OpenMayaMPx as OpenMayaMPx
 import maya.cmds as cmds
 import maya.mel as mel
+
 import numpy as np
 import scipy as sp
+import scipy.optimize
+
 
 def drange(start, stop, step):
   r = start
@@ -305,6 +312,44 @@ def propagateCurve():
       
       pos = np.array(cmds.pointOnCurve(curve.name, pr=t, p=True))
       cmds.spaceLocator( p=(pos+nor).tolist() )
+
+def createPatchMesh():
+  cubeSize = 0.5
+
+  numFaces = 6
+  numVertices = 8
+  numFaceConnects = 24
+
+  vertices = []
+  vertices.append( OpenMaya.MFloatPoint(-cubeSize, -cubeSize, -cubeSize) )
+  vertices.append( OpenMaya.MFloatPoint( cubeSize, -cubeSize, -cubeSize) )
+  vertices.append( OpenMaya.MFloatPoint( cubeSize, -cubeSize,  cubeSize) )
+  vertices.append( OpenMaya.MFloatPoint(-cubeSize, -cubeSize,  cubeSize) )
+  vertices.append( OpenMaya.MFloatPoint(-cubeSize,  cubeSize, -cubeSize) )
+  vertices.append( OpenMaya.MFloatPoint(-cubeSize,  cubeSize,  cubeSize) )
+  vertices.append( OpenMaya.MFloatPoint( cubeSize,  cubeSize,  cubeSize) )
+  vertices.append( OpenMaya.MFloatPoint( cubeSize,  cubeSize, -cubeSize) )
+
+  mVertices = OpenMaya.MFloatPointArray()
+  for v in vertices:
+    mVertices.append(v)
+    
+  faceConnects = [
+    0, 1, 2, 3,
+    4, 5, 6, 7,
+    3, 2, 6, 5,
+    0, 3, 5, 4,
+    0, 4, 7, 1,
+    1, 7, 6, 2
+  ]
+  mFaceConnects = OpenMaya.MIntArray()
+  for fc in faceConnects:
+    mFaceConnects.append(fc)
+
+  mFaceCounts = OpenMaya.MIntArray(numFaces, 4)
+
+  meshFS = OpenMaya.MFnMesh()
+  meshFS.create(numVertices, numFaces, mVertices, mFaceCounts, mFaceConnects)
 
 def propagatePatch():
   print "propagate coons patch"
