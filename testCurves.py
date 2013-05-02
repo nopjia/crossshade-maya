@@ -266,7 +266,7 @@ def minOptimize():
         ch[j][i].nor = nor
         print "n_(%s,%s) : %s" % (i, j, ch[i][j].nor)
         
-        cmds.spaceLocator( p=(ch[i][j].pos+ch[i][j].nor).tolist() )
+        #cmds.spaceLocator( p=(ch[i][j].pos+ch[i][j].nor).tolist() )
 
 # get interpolated normal of ch_ij along curve i at t
 def getCHNormAtT(chI, chJ, tparam):
@@ -287,31 +287,6 @@ def getCHNormAtT(chI, chJ, tparam):
   rot = rotation(angle,axis)
   
   return normalize(np.dot(rot, origN))
-  
-def propagateCurve():
-  global csNum
-  global cs
-  global chNum
-  global ch
-  
-  T_STEP = .1
-  
-  for curve in cs:
-    chi = 0
-  
-    # step from first to last intersection
-    for t in drange(curve.ch[0].t, curve.ch[-1].t, T_STEP):
-      if chi < len(curve.ch)-1: 
-        while t > curve.ch[chi+1].t: chi+=1
-      
-      nor1 = getCHNormAtT(curve.ch[chi].i, curve.ch[chi].j, t)
-      nor2 = getCHNormAtT(curve.ch[chi+1].i, curve.ch[chi+1].j, t)
-      
-      blendT = (t-curve.ch[chi].t) / (curve.ch[chi+1].t-curve.ch[chi].t)
-      nor = blendT*nor2+(1-blendT)*nor1
-      
-      pos = np.array(cmds.pointOnCurve(curve.name, pr=t, p=True))
-      cmds.spaceLocator( p=(pos+nor).tolist() )
 
 def createPatchMesh(vertices, normals):
   width = len(vertices)
@@ -370,6 +345,33 @@ def testCreatePatch():
       normals[i][j] = normalize( np.array([ 0.0, float(height-j)/height, 1.0-float(height-j)/height]) )
 
   createPatchMesh(vertices, normals)
+
+
+def propagateCurve():
+  global csNum
+  global cs
+  global chNum
+  global ch
+  
+  T_STEPS = 10
+  
+  for curve in cs:
+    chi = 0
+  
+    # step from first to last intersection
+    tStep = (curve.ch[-1].t - curve.ch[0].t) / T_STEPS
+    for t in drange(curve.ch[0].t, curve.ch[-1].t, tStep):
+      if chi < len(curve.ch)-1: 
+        while t > curve.ch[chi+1].t: chi+=1
+      
+      nor1 = getCHNormAtT(curve.ch[chi].i, curve.ch[chi].j, t)
+      nor2 = getCHNormAtT(curve.ch[chi+1].i, curve.ch[chi+1].j, t)
+      
+      blendT = (t-curve.ch[chi].t) / (curve.ch[chi+1].t-curve.ch[chi].t)
+      nor = blendT*nor2+(1-blendT)*nor1
+      
+      pos = np.array(cmds.pointOnCurve(curve.name, pr=t, p=True))
+      cmds.spaceLocator( p=(pos+nor).tolist() )
   
 def propagatePatch():
   print "propagate coons patch"
