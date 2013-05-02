@@ -288,6 +288,7 @@ def getCHNormAtT(chI, chJ, tparam):
   
   return normalize(np.dot(rot, origN))
 
+# input np.arrays
 def createPatchMesh(vertices, normals):
   width = len(vertices)
   height = len(vertices[0])
@@ -353,6 +354,7 @@ def propagateCurve():
   global chNum
   global ch
   
+  # square patch dimension T_STEP by T_STEP
   T_STEPS = 10
 
   #given 4 corner points
@@ -363,8 +365,10 @@ def propagateCurve():
     [2,0]
   ]
 
-  vertices = [[None]*T_STEPS for x in range(T_STEPS)]
-  normals = [[None]*T_STEPS for x in range(T_STEPS)]
+  vertices = [[None]*(T_STEPS) for x in range(T_STEPS)]
+  normals = [[None]*(T_STEPS) for x in range(T_STEPS)]
+  
+  # ALONG CURVE
   
   # go from each ch to ch
   for p in range(4):
@@ -373,17 +377,16 @@ def propagateCurve():
       cEnd = ch[ cpairs[p+1][0] ][ cpairs[p+1][1] ]
     else:      
       cEnd = ch[ cpairs[0][0] ][ cpairs[0][1] ]
-    tStep = (cEnd.t-cStart.t)/T_STEPS
+    tStep = (cEnd.t-cStart.t)/(T_STEPS-1)
     
     print "%s to %s : %s" % (cStart.t, cEnd.t, tStep)
     
     # go down curve
     
     t = cStart.t
-    for step in range(T_STEPS):
-    
+    for step in range(T_STEPS-1):    
       # get position
-      pos = cmds.pointOnCurve(cs[cStart.i].name, pr=t, p=True)
+      pos = np.array(cmds.pointOnCurve(cs[cStart.i].name, pr=t, p=True))
       
       # get normal
       nor1 = getCHNormAtT(cStart.i, cStart.j, t)
@@ -391,12 +394,28 @@ def propagateCurve():
       blendT = (t-cStart.t) / (cEnd.t-cStart.t)
       nor = blendT*nor2+(1-blendT)*nor1
       
+      if p == 0:
+        coord = (step,0)
+      elif p == 1:
+        coord = (T_STEPS-1,step)
+      elif p == 2:
+        coord = (T_STEPS-2-step,T_STEPS-1)
+      elif p == 3:
+        coord = (0, T_STEPS-2-step)
+        
+      vertices[coord[0]][coord[1]] = pos
+      normals[coord[0]][coord[1]] = nor
+      
       cmds.spaceLocator( p=(pos+nor).tolist() )
       
-      print t
-      
       t = t + tStep
-      
+    
+  # ALONG PATCH
+  
+  # size = T_STEP+1
+  # for i in range(size):
+    # for j in range(size):
+      # vertices[i][j] = 0
   
 def propagatePatch():
   print "propagate coons patch"
