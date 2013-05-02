@@ -399,26 +399,68 @@ def propagateCurve():
       elif p == 1:
         coord = (T_STEPS-1,step)
       elif p == 2:
-        coord = (T_STEPS-2-step,T_STEPS-1)
+        coord = (T_STEPS-1-step,T_STEPS-1)
       elif p == 3:
-        coord = (0, T_STEPS-2-step)
-        
+        coord = (0, T_STEPS-1-step)
+      
+      print "(%s,%s)" % (coord[0], coord[1])
       vertices[coord[0]][coord[1]] = pos
       normals[coord[0]][coord[1]] = nor
       
       cmds.spaceLocator( p=(pos+nor).tolist() )
       
       t = t + tStep
-    
+  
+  # test 2d array
+  for i in range(T_STEPS):
+    line = ""
+    for j in range(T_STEPS):
+      if vertices[i][j] is not None:
+        line = line + ". "
+      else:
+        line = line + "  "
+    print line
+  
   # ALONG PATCH
   
-  # size = T_STEP+1
-  # for i in range(size):
-    # for j in range(size):
-      # vertices[i][j] = 0
+  n = T_STEPS-1
   
-def propagatePatch():
-  print "propagate coons patch"
+  for i in range(1, T_STEPS-1):
+    for j in range(1, T_STEPS-1):      
+      
+      vertices[i][j] = np.array([0.0,0.0,0.0])
+      normals[i][j] = np.array([0.0,0.0,0.0])
+      
+      fi = float(i)
+      fj = float(j)
+      
+      for k in range(3):
+          
+        vertices[i][j][k] = (
+          (1.0-fi/n)*vertices[0][j][k] + fi/n*vertices[n][j][k] +
+          (1.0-fj/n)*vertices[i][0][k] + fj/n*vertices[i][n][k] -
+          (
+            vertices[0][0][k]+(vertices[n][0][k]-vertices[0][0][k])*(fi/n) + 
+            (
+              (vertices[0][n][k]+(vertices[n][n][k]-vertices[0][n][k])*(fi/n)) - 
+              (vertices[0][0][k]+(vertices[n][0][k]-vertices[0][0][k])*(fi/n))
+            ) * (fj/n)
+          )
+        )
+        
+        normals[i][j][k] = (
+          (1.0-fi/n)*normals[0][j][k] + fi/n*normals[n][j][k] +
+          (1.0-fj/n)*normals[i][0][k] + fj/n*normals[i][n][k] -
+          (
+            normals[0][0][k]+(normals[n][0][k]-normals[0][0][k])*(fi/n) + 
+            (
+              (normals[0][n][k]+(normals[n][n][k]-normals[0][n][k])*(fi/n)) - 
+              (normals[0][0][k]+(normals[n][0][k]-normals[0][0][k])*(fi/n))
+            ) * (fj/n)
+          )
+        )
+  
+  createPatchMesh(vertices, normals)
         
 #----------------------------------------------------------
 # RUN COMMAND
@@ -429,6 +471,5 @@ def runCrossShade():
   printCrossSectionData1()
   minOptimize()
   propagateCurve()
-  propagatePatch()
   
 runCrossShade()
