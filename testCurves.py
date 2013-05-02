@@ -266,7 +266,7 @@ def minOptimize():
         ch[j][i].nor = nor
         print "n_(%s,%s) : %s" % (i, j, ch[i][j].nor)
         
-        #cmds.spaceLocator( p=(ch[i][j].pos+ch[i][j].nor).tolist() )
+        # cmds.spaceLocator( p=(ch[i][j].pos+ch[i][j].nor).tolist() )
 
 # get interpolated normal of ch_ij along curve i at t
 def getCHNormAtT(chI, chJ, tparam):
@@ -354,24 +354,49 @@ def propagateCurve():
   global ch
   
   T_STEPS = 10
+
+  #given 4 corner points
+  cpairs = [
+    [0,3],
+    [3,1],
+    [1,2],
+    [2,0]
+  ]
+
+  vertices = [[None]*T_STEPS for x in range(T_STEPS)]
+  normals = [[None]*T_STEPS for x in range(T_STEPS)]
   
-  for curve in cs:
-    chi = 0
-  
-    # step from first to last intersection
-    tStep = (curve.ch[-1].t - curve.ch[0].t) / T_STEPS
-    for t in drange(curve.ch[0].t, curve.ch[-1].t, tStep):
-      if chi < len(curve.ch)-1: 
-        while t > curve.ch[chi+1].t: chi+=1
+  # go from each ch to ch
+  for p in range(4):
+    cStart = ch[ cpairs[p][1] ][ cpairs[p][0] ]
+    if p<3:
+      cEnd = ch[ cpairs[p+1][0] ][ cpairs[p+1][1] ]
+    else:      
+      cEnd = ch[ cpairs[0][0] ][ cpairs[0][1] ]
+    tStep = (cEnd.t-cStart.t)/T_STEPS
+    
+    print "%s to %s : %s" % (cStart.t, cEnd.t, tStep)
+    
+    # go down curve
+    
+    t = cStart.t
+    for step in range(T_STEPS):
+    
+      # get position
+      pos = cmds.pointOnCurve(cs[cStart.i].name, pr=t, p=True)
       
-      nor1 = getCHNormAtT(curve.ch[chi].i, curve.ch[chi].j, t)
-      nor2 = getCHNormAtT(curve.ch[chi+1].i, curve.ch[chi+1].j, t)
-      
-      blendT = (t-curve.ch[chi].t) / (curve.ch[chi+1].t-curve.ch[chi].t)
+      # get normal
+      nor1 = getCHNormAtT(cStart.i, cStart.j, t)
+      nor2 = getCHNormAtT(cEnd.i, cEnd.j, t)      
+      blendT = (t-cStart.t) / (cEnd.t-cStart.t)
       nor = blendT*nor2+(1-blendT)*nor1
       
-      pos = np.array(cmds.pointOnCurve(curve.name, pr=t, p=True))
       cmds.spaceLocator( p=(pos+nor).tolist() )
+      
+      print t
+      
+      t = t + tStep
+      
   
 def propagatePatch():
   print "propagate coons patch"
