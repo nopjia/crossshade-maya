@@ -313,46 +313,64 @@ def propagateCurve():
       pos = np.array(cmds.pointOnCurve(curve.name, pr=t, p=True))
       cmds.spaceLocator( p=(pos+nor).tolist() )
 
-def createPatchMesh():
-  cubeSize = 0.5
+def createPatchMesh(vertices, normals):
+  width = len(vertices)
+  height = len(vertices[0])
 
-  numFaces = 6
-  numVertices = 8
-  numFaceConnects = 24
+  numFaces = (width-1)*(height-1)
+  numVertices = width*height
+  numFaceConnects = 4*numFaces
 
-  vertices = [
-    vertices.append( OpenMaya.MFloatPoint(-cubeSize, -cubeSize, -cubeSize) ),
-    vertices.append( OpenMaya.MFloatPoint( cubeSize, -cubeSize, -cubeSize) ),
-    vertices.append( OpenMaya.MFloatPoint( cubeSize, -cubeSize,  cubeSize) ),
-    vertices.append( OpenMaya.MFloatPoint(-cubeSize, -cubeSize,  cubeSize) ),
-    vertices.append( OpenMaya.MFloatPoint(-cubeSize,  cubeSize, -cubeSize) ),
-    vertices.append( OpenMaya.MFloatPoint(-cubeSize,  cubeSize,  cubeSize) ),
-    vertices.append( OpenMaya.MFloatPoint( cubeSize,  cubeSize,  cubeSize) ),
-    vertices.append( OpenMaya.MFloatPoint( cubeSize,  cubeSize, -cubeSize) )
-  ]
+  # enumerate x first for each y
+  mVertices = OpenMaya.MFloatPointArray()  
+  for j in range(height):
+    for i in range(width):
+      mVertices.append( OpenMaya.MFloatPoint(vertices[i][j][0], vertices[i][j][1], vertices[i][j][2]) )
 
-  mVertices = OpenMaya.MFloatPointArray()
-  for v in vertices:
-    mVertices.append(v)
-  
-  scriptUtil = OpenMaya.MScriptUtil()
-  
-  faceConnects = [
-    0, 1, 2, 3,
-    4, 5, 6, 7,
-    3, 2, 6, 5,
-    0, 3, 5, 4,
-    0, 4, 7, 1,
-    1, 7, 6, 2
-  ]
+  toIdx = lambda x,y: y*width + x
+
+  # construct face connects
+  faceConnects = []
+  for i in range(width-1):
+    for j in range(height-1):
+      faceConnects.append(toIdx( i  , j  ))
+      faceConnects.append(toIdx( i+1, j  ))
+      faceConnects.append(toIdx( i+1, j+1))
+      faceConnects.append(toIdx( i  , j+1))
   mFaceConnects = OpenMaya.MIntArray()
+  scriptUtil = OpenMaya.MScriptUtil()
   scriptUtil.createIntArrayFromList( faceConnects,  mFaceConnects )
 
   mFaceCounts = OpenMaya.MIntArray(numFaces, 4)
 
+  # create mesh
   meshFS = OpenMaya.MFnMesh()
   meshFS.create(numVertices, numFaces, mVertices, mFaceCounts, mFaceConnects)
+  
+  # set normals
+  
+  mNormals = OpenMaya.MFloatVectorArray()
+  for j in range(height):
+    for i in range(width):
+      mNormals.append( OpenMaya.MFloatVector(normals[i][j][0], normals[i][j][1], normals[i][j][2]) )
+  meshFS.setNormals(mNormals)
 
+def testCreatePatch():
+  width = 6
+  height = 4
+  
+  vertices = [[None]*height for x in range(width)]
+  for i in range(width):
+    for j in range(height):
+      vertices[i][j] = np.array([i*0.75, j*0.75, 0.0])
+      
+  normals = [[None]*height for x in range(width)]
+  for i in range(width):
+    for j in range(height):
+      normals[i][j] = normalize( np.array([ 0.0, float(height-j)/height, 1.0-float(height-j)/height]) )
+
+  createPatchMesh(vertices, normals)
+  
 def propagatePatch():
   print "propagate coons patch"
         
