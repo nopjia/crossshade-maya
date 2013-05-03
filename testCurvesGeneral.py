@@ -367,7 +367,7 @@ def createPatchMesh(vertices, normals):
 
   # assign lambert shader
   mel.eval("string $myLambert = `shadingNode -asShader lambert`;")
-  mel.eval("setAttr lambert1.color 0.279 0.275 0.5;")
+  mel.eval("setAttr lambert2.color 0.279 0.275 0.5;")
   poly = cmds.ls(type='mesh')
   cmds.select(poly)
   mel.eval("hyperShade -assign $myLambert;")
