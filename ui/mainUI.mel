@@ -4,6 +4,7 @@ global int $prevRadioSelect = 0;
 global string $curvesCross[];
 global string $curvesSilhouette[];
 global string $curvesEdge[];
+global int $normals = 0;
 
 global proc createCrossShadeDialog() {
   global string $windowname;
@@ -31,8 +32,9 @@ global proc createCrossShadeDialog() {
     -numberOfRadioButtons 3    
     -labelArray3 "Cross Section" "Edge" "Silhouette"
     radioCurveMode;
-    
+  
   button -label "Run CrossShade" -c "runCommand()";
+  button -label "Display Normals" -c "displayNormals()";
   
   showWindow $window;
 }
@@ -142,6 +144,20 @@ global proc runCommand() {
   CrossShadeCmd;
 }
 
+global proc displayNormals() {
+    global int $normals;
+    
+    if($normals == 0) {
+      polyOptions -displayNormal true;
+      polyOptions -pt;    // on vertices
+      $normals = 1;
+    }
+    else {
+      polyOptions -displayNormal false; 
+      $normals = 0;
+    }
+}
+
 global proc initCrossShade() {
   lookThroughModelPanel front modelPanel4;
   createCrossShadeDialog();
@@ -165,4 +181,5 @@ global proc deleteCrossShadeUI() {
   deleteCrossShadeDialog();
 }
 
-// createCrossShadeUI();
+ createCrossShadeUI();
+ displayNormals();
