@@ -412,7 +412,7 @@ def propagateCurve():
   global regions
 
   # TO DO: generalize
-  """regions = [None for x in range (0,4)]
+  regions = [None for x in range (0,4)]
   regions[0] = Region(0)
   regions[0].corners = [
     [0,3],
@@ -442,147 +442,147 @@ def propagateCurve():
     [3,1]
   ]
   
-  for y in range(4):"""
+  for y in range(4):
 
 
-  # square patch dimension T_STEP by T_STEP
-  T_STEPS = 10
+    # square patch dimension T_STEP by T_STEP
+    T_STEPS = 10
 
- #given 4 corner points, CW
-  cpairs = [
-    [0,3],
-    [3,1],
-    [1,2],
-    [2,0]
-  ]
-  #cpairs = regions[y].corners
+   #given 4 corner points, CW
+    """cpairs = [
+      [0,3],
+      [3,1],
+      [1,2],
+      [2,0]
+    ]"""
+    cpairs = regions[y].corners
 
 
-  vertices = [[None]*(T_STEPS) for x in range(T_STEPS)]
-  normals = [[None]*(T_STEPS) for x in range(T_STEPS)]
-    
-  # ALONG CURVE
-    
-  # go from each ch to ch
-  for p in range(4):
-    cStart = ch[ cpairs[p][1] ][ cpairs[p][0] ]
-    if p<3:
-      cEnd = ch[ cpairs[p+1][0] ][ cpairs[p+1][1] ]
-    else:      
-      cEnd = ch[ cpairs[0][0] ][ cpairs[0][1] ]
-    tStep = (cEnd.t-cStart.t)/(T_STEPS-1)
+    vertices = [[None]*(T_STEPS) for x in range(T_STEPS)]
+    normals = [[None]*(T_STEPS) for x in range(T_STEPS)]
       
-    print "%s to %s : %s" % (cStart.t, cEnd.t, tStep)
-  
-    # go down curve
+    # ALONG CURVE
       
-    t = cStart.t
-    #cmds.spaceLocator( p=cmds.pointOnCurve(cs[cStart.i].name, pr=t, p=True))
-
-    for step in range(T_STEPS-1):    
-      # get position
-      pos = np.array(cmds.pointOnCurve(cs[cStart.i].name, pr=t, p=True))
+    # go from each ch to ch
+    for p in range(4):
+      cStart = ch[ cpairs[p][1] ][ cpairs[p][0] ]
+      if p<3:
+        cEnd = ch[ cpairs[p+1][0] ][ cpairs[p+1][1] ]
+      else:      
+        cEnd = ch[ cpairs[0][0] ][ cpairs[0][1] ]
+      tStep = (cEnd.t-cStart.t)/(T_STEPS-1)
         
-      # get normal
-      nor1 = getCHNormAtT(cStart.i, cStart.j, t)
-      nor2 = getCHNormAtT(cEnd.i, cEnd.j, t)      
-      blendT = (t-cStart.t) / (cEnd.t-cStart.t)
-      nor = blendT*nor2+(1-blendT)*nor1
-        
-      if p == 0:
-        coord = (step,0)
-      elif p == 1:
-        coord = (T_STEPS-1,step)
-      elif p == 2:
-        coord = (T_STEPS-1-step,T_STEPS-1)
-      elif p == 3:
-        coord = (0, T_STEPS-1-step)
-        
-      print "(%s,%s)" % (coord[0], coord[1])
-      vertices[coord[0]][coord[1]] = pos
-      normals[coord[0]][coord[1]] = nor
-      
-      #cmds.spaceLocator( p=(pos+nor).tolist() )
-      
-      t = t + tStep
-  
-  # test 2d array
-  for i in range(T_STEPS):
-    line = ""
-    for j in range(T_STEPS):
-      if vertices[i][j] is not None:
-        line = line + ". "
-      else:
-        line = line + "  "
-    print line
-
-
-  """halfway = (T_STEPS)/2.0 #5.0
-  inc = 0.5
-  incF = 0.5
-  print halfway
-  # Set z values
-  for i in range(1, T_STEPS - 1):
-    vertices[i][0][2] = vertices[i][0][2] + inc
-    vertices[0][i][2] = vertices[0][i][2] + inc
-    vertices[i][T_STEPS-1][2] = vertices[i][T_STEPS-1][2] + inc
-    vertices[T_STEPS-1][i][2] = vertices[T_STEPS-1][i][2] + inc
-    if i < halfway:
-      incF = incF/2.0
-      inc = inc + incF
-    elif i > halfway:
-      incF = incF*2.0
-      inc = inc - incF
-    print inc"""
-        
-    #print vertices[i][0][2]
-    #print vertices[0][i][2]
-
+      print "%s to %s : %s" % (cStart.t, cEnd.t, tStep)
     
-  # ALONG PATCH
-    
-  n = T_STEPS-1
-    
-  for i in range(1, T_STEPS-1):
-    for j in range(1, T_STEPS-1):      
+      # go down curve
         
-      vertices[i][j] = np.array([0.0,0.0,0.0])
-      normals[i][j] = np.array([0.0,0.0,0.0])
-      
-      fi = float(i)
-      fj = float(j)
-      
-      for k in range(3):
+      t = cStart.t
+      #cmds.spaceLocator( p=cmds.pointOnCurve(cs[cStart.i].name, pr=t, p=True))
+
+      for step in range(T_STEPS-1):    
+        # get position
+        pos = np.array(cmds.pointOnCurve(cs[cStart.i].name, pr=t, p=True))
           
-        vertices[i][j][k] = (
-          (1.0-fi/n)*vertices[0][j][k] + fi/n*vertices[n][j][k] +
-          (1.0-fj/n)*vertices[i][0][k] + fj/n*vertices[i][n][k] -
-          (
-            vertices[0][0][k]+(vertices[n][0][k]-vertices[0][0][k])*(fi/n) + 
-            (
-              (vertices[0][n][k]+(vertices[n][n][k]-vertices[0][n][k])*(fi/n)) - 
-              (vertices[0][0][k]+(vertices[n][0][k]-vertices[0][0][k])*(fi/n))
-            ) * (fj/n)
-          )
-        )
+        # get normal
+        nor1 = getCHNormAtT(cStart.i, cStart.j, t)
+        nor2 = getCHNormAtT(cEnd.i, cEnd.j, t)      
+        blendT = (t-cStart.t) / (cEnd.t-cStart.t)
+        nor = blendT*nor2+(1-blendT)*nor1
+          
+        if p == 0:
+          coord = (step,0)
+        elif p == 1:
+          coord = (T_STEPS-1,step)
+        elif p == 2:
+          coord = (T_STEPS-1-step,T_STEPS-1)
+        elif p == 3:
+          coord = (0, T_STEPS-1-step)
+          
+        print "(%s,%s)" % (coord[0], coord[1])
+        vertices[coord[0]][coord[1]] = pos
+        normals[coord[0]][coord[1]] = nor
         
-        normals[i][j][k] = (
-          (1.0-fi/n)*normals[0][j][k] + fi/n*normals[n][j][k] +
-          (1.0-fj/n)*normals[i][0][k] + fj/n*normals[i][n][k] -
-          (
-            normals[0][0][k]+(normals[n][0][k]-normals[0][0][k])*(fi/n) + 
+        #cmds.spaceLocator( p=(pos+nor).tolist() )
+        
+        t = t + tStep
+    
+    # test 2d array
+    for i in range(T_STEPS):
+      line = ""
+      for j in range(T_STEPS):
+        if vertices[i][j] is not None:
+          line = line + ". "
+        else:
+          line = line + "  "
+      print line
+
+
+    """halfway = (T_STEPS)/2.0 #5.0
+    inc = 0.5
+    incF = 0.5
+    print halfway
+    # Set z values
+    for i in range(1, T_STEPS - 1):
+      vertices[i][0][2] = vertices[i][0][2] + inc
+      vertices[0][i][2] = vertices[0][i][2] + inc
+      vertices[i][T_STEPS-1][2] = vertices[i][T_STEPS-1][2] + inc
+      vertices[T_STEPS-1][i][2] = vertices[T_STEPS-1][i][2] + inc
+      if i < halfway:
+        incF = incF/2.0
+        inc = inc + incF
+      elif i > halfway:
+        incF = incF*2.0
+        inc = inc - incF
+      print inc"""
+          
+      #print vertices[i][0][2]
+      #print vertices[0][i][2]
+
+      
+    # ALONG PATCH
+      
+    n = T_STEPS-1
+      
+    for i in range(1, T_STEPS-1):
+      for j in range(1, T_STEPS-1):      
+          
+        vertices[i][j] = np.array([0.0,0.0,0.0])
+        normals[i][j] = np.array([0.0,0.0,0.0])
+        
+        fi = float(i)
+        fj = float(j)
+        
+        for k in range(3):
+            
+          vertices[i][j][k] = (
+            (1.0-fi/n)*vertices[0][j][k] + fi/n*vertices[n][j][k] +
+            (1.0-fj/n)*vertices[i][0][k] + fj/n*vertices[i][n][k] -
             (
-              (normals[0][n][k]+(normals[n][n][k]-normals[0][n][k])*(fi/n)) - 
-              (normals[0][0][k]+(normals[n][0][k]-normals[0][0][k])*(fi/n))
-            ) * (fj/n)
+              vertices[0][0][k]+(vertices[n][0][k]-vertices[0][0][k])*(fi/n) + 
+              (
+                (vertices[0][n][k]+(vertices[n][n][k]-vertices[0][n][k])*(fi/n)) - 
+                (vertices[0][0][k]+(vertices[n][0][k]-vertices[0][0][k])*(fi/n))
+              ) * (fj/n)
+            )
           )
-        )
-  #for x in range(1, n):
-    #for y in range(1, n):
-      #cmds.spaceLocator(p=vertices[x][y])
-  createPatchMesh(vertices, normals)
-  #print "Y VALUE"
-  #print y
+          
+          normals[i][j][k] = (
+            (1.0-fi/n)*normals[0][j][k] + fi/n*normals[n][j][k] +
+            (1.0-fj/n)*normals[i][0][k] + fj/n*normals[i][n][k] -
+            (
+              normals[0][0][k]+(normals[n][0][k]-normals[0][0][k])*(fi/n) + 
+              (
+                (normals[0][n][k]+(normals[n][n][k]-normals[0][n][k])*(fi/n)) - 
+                (normals[0][0][k]+(normals[n][0][k]-normals[0][0][k])*(fi/n))
+              ) * (fj/n)
+            )
+          )
+    #for x in range(1, n):
+      #for y in range(1, n):
+        #cmds.spaceLocator(p=vertices[x][y])
+    createPatchMesh(vertices, normals)
+    #print "Y VALUE"
+    #print y
 
 
   #createPatchMesh(vertices, normals)
