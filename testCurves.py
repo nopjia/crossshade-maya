@@ -289,7 +289,7 @@ def getCHNormAtT(chI, chJ, tparam):
   return normalize(np.dot(rot, origN))
 
 # input np.arrays
-def createPatchMesh(vertices, normals):
+def createPatchMeshOpenMaya(vertices, normals):
   width = len(vertices)
   height = len(vertices[0])
 
@@ -330,11 +330,32 @@ def createPatchMesh(vertices, normals):
     for i in range(width):
       mNormals.append( OpenMaya.MFloatVector(normals[i][j][0], normals[i][j][1], normals[i][j][2]) )
   meshFS.setNormals(mNormals)
+  
+def createPatchMesh(vertices, normals):
+  cmds.polyPlane(n="tp", sx=width-1, sy=height-1, ax=[0, 0, 1])
 
+  for j in range(height):
+    for i in range(width):
+      cmds.select("tp.vtx[%s]"%(toIdx(i,j)), r=True)
+      cmds.move(vertices[i][j][0], vertices[i][j][1], vertices[i][j][2], a=True)
+      cmds.polyNormalPerVertex(xyz=normals[i][j].tolist())
+
+  normalZ = cmds.polyInfo("tp.f[0]", fn=True)[0].split()[-1]
+  if normalZ[0]=="-":
+    cmds.polyNormal("tp", normalMode=0, userNormalMode=0, ch=1);
+  
+  cmds.rename("tp", "patch1")
+  cmds.select(cl=True)
+
+vertices = None
+normals = None
 # input 4 pairs (i,j) of crosshair intersections in RHR order
 def createCoonsPatch(cpairs):  
   # square patch dimension T_STEP by T_STEP
   T_STEPS = 10  
+  
+  global vertices
+  global normals
   
   vertices = [[None]*(T_STEPS) for x in range(T_STEPS)]
   normals = [[None]*(T_STEPS) for x in range(T_STEPS)]
