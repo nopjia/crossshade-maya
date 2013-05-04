@@ -129,7 +129,7 @@ def readCrossSections():
         
     cs[i].ch = sorted(cs[i].ch, key=lambda ch: ch.t)
   
-def printCrossSectionData1():
+def printCSData():
   global csNum
   global cs
   global chNum
@@ -252,8 +252,8 @@ def minOptimize():
         ch[i][j].tan = normalize(ch[i][j].tan)
         ch[j][i].tan = normalize(ch[j][i].tan)
         
-        print "t_(%s,%s) : %s" % (i, j, ch[i][j].tan)
-        print "t_(%s,%s) : %s" % (j, i, ch[j][i].tan)
+        #print "t_(%s,%s) : %s" % (i, j, ch[i][j].tan)
+        #print "t_(%s,%s) : %s" % (j, i, ch[j][i].tan)
         
         tanPairIdx += 2
         
@@ -268,7 +268,7 @@ def minOptimize():
         
         ch[i][j].nor = normalize(nor)
         ch[j][i].nor = nor
-        print "n_(%s,%s) : %s" % (i, j, ch[i][j].nor)
+        #print "n_(%s,%s) : %s" % (i, j, ch[i][j].nor)
         
         cmds.spaceLocator( p=(ch[i][j].pos+ch[i][j].nor).tolist() )
 
@@ -292,33 +292,189 @@ def getCHNormAtT(chI, chJ, tparam):
   
   return normalize(np.dot(rot, origN))
   
+def createPatchMesh(vertices, normals):
+  width = len(vertices)
+  height = len(vertices[0])
+  
+  cmds.polyPlane(n="tp", sx=width-1, sy=height-1, ax=[0, 0, 1])
+
+  for j in range(height):
+    for i in range(width):
+      cmds.select("tp.vtx[%s]" % (j*width+i), r=True)
+      cmds.move(vertices[i][j][0], vertices[i][j][1], vertices[i][j][2], a=True)
+      cmds.polyNormalPerVertex(xyz=normals[i][j].tolist())
+
+  normalZ = cmds.polyInfo("tp.f[0]", fn=True)[0].split()[-1]
+  if normalZ[0]=="-":
+    cmds.polyNormal("tp", normalMode=0, userNormalMode=0, ch=1);
+  
+  cmds.rename("tp", "patch1")
+  cmds.select(cl=True)
+
+vertices = None
+normals = None
+# input 4 pairs (i,j) of crosshair intersections, connecting indices
+def createCoonsPatch(cpairs):
+  global csNum
+  global cs
+  global chNum
+  global ch
+  
+  global vertices
+  global normals
+
+  # square patch dimension T_STEP by T_STEP
+  T_STEPS = 10  
+  
+  vertices = [[None]*(T_STEPS) for x in range(T_STEPS)]
+  normals = [[None]*(T_STEPS) for x in range(T_STEPS)]
+  
+  # ALONG CURVE
+  
+  # go from each ch to ch
+  for p in range(4):
+    cStart = ch[ cpairs[p][1] ][ cpairs[p][0] ]
+    cEnd = None
+    if p<3:
+      cEnd = ch[ cpairs[p+1][0] ][ cpairs[p+1][1] ]
+    else:      
+      cEnd = ch[ cpairs[0][0] ][ cpairs[0][1] ]
+    tStep = (cEnd.t-cStart.t)/(T_STEPS-1)
+    
+    # print "%s to %s : %s" % (cStart.t, cEnd.t, tStep)
+    
+    # go down curve
+    
+    t = cStart.t
+    for step in range(T_STEPS-1):    
+      # get position
+      pos = np.array(cmds.pointOnCurve(cs[cStart.i].name, pr=t, p=True))
+      
+      # get normal
+      nor1 = getCHNormAtT(cStart.i, cStart.j, t)
+      nor2 = getCHNormAtT(cEnd.i, cEnd.j, t)      
+      blendT = (t-cStart.t) / (cEnd.t-cStart.t)
+      nor = blendT*nor2+(1-blendT)*nor1
+      
+      if p == 0:
+        coord = (step,0)
+      elif p == 1:
+        coord = (T_STEPS-1,step)
+      elif p == 2:
+        coord = (T_STEPS-1-step,T_STEPS-1)
+      elif p == 3:
+        coord = (0, T_STEPS-1-step)
+      
+      #print "(%s,%s)" % (coord[0], coord[1])
+      vertices[coord[0]][coord[1]] = pos
+      normals[coord[0]][coord[1]] = nor
+      
+      #cmds.spaceLocator( p=(pos+nor).tolist() )
+      
+      t = t + tStep
+      
+  
+  # ALONG PATCH
+  
+  n = T_STEPS-1
+  
+  for i in range(1, T_STEPS-1):
+    for j in range(1, T_STEPS-1):      
+      
+      vertices[i][j] = np.array([0.0,0.0,0.0])
+      normals[i][j] = np.array([0.0,0.0,0.0])
+      
+      fi = float(i)
+      fj = float(j)
+      
+      for k in range(3):
+          
+        vertices[i][j][k] = (
+          (1.0-fi/n)*vertices[0][j][k] + fi/n*vertices[n][j][k] +
+          (1.0-fj/n)*vertices[i][0][k] + fj/n*vertices[i][n][k] -
+          (
+            vertices[0][0][k]+(vertices[n][0][k]-vertices[0][0][k])*(fi/n) + 
+            (
+              (vertices[0][n][k]+(vertices[n][n][k]-vertices[0][n][k])*(fi/n)) - 
+              (vertices[0][0][k]+(vertices[n][0][k]-vertices[0][0][k])*(fi/n))
+            ) * (fj/n)
+          )
+        )
+        
+        normals[i][j][k] = (
+          (1.0-fi/n)*normals[0][j][k] + fi/n*normals[n][j][k] +
+          (1.0-fj/n)*normals[i][0][k] + fj/n*normals[i][n][k] -
+          (
+            normals[0][0][k]+(normals[n][0][k]-normals[0][0][k])*(fi/n) + 
+            (
+              (normals[0][n][k]+(normals[n][n][k]-normals[0][n][k])*(fi/n)) - 
+              (normals[0][0][k]+(normals[n][0][k]-normals[0][0][k])*(fi/n))
+            ) * (fj/n)
+          )
+        )
+
+      # cmds.spaceLocator( p=(vertices[i][j]+normals[i][j]).tolist() )
+    
+  createPatchMesh(vertices, normals)
+
+pairsList = None
 def propagateCurve():
   global csNum
   global cs
   global chNum
   global ch
   
-  T_STEP = .1
-  
-  for curve in cs:
-    chi = 0
-  
-    # step from first to last intersection
-    for t in drange(curve.ch[0].t, curve.ch[-1].t, T_STEP):
-      if chi < len(curve.ch)-1: 
-        while t > curve.ch[chi+1].t: chi+=1
-      
-      nor1 = getCHNormAtT(curve.ch[chi].i, curve.ch[chi].j, t)
-      nor2 = getCHNormAtT(curve.ch[chi+1].i, curve.ch[chi+1].j, t)
-      
-      blendT = (t-curve.ch[chi].t) / (curve.ch[chi+1].t-curve.ch[chi].t)
-      nor = blendT*nor2+(1-blendT)*nor1
-      
-      pos = np.array(cmds.pointOnCurve(curve.name, pr=t, p=True))
-      cmds.spaceLocator( p=(pos+nor).tolist() )
+  global pairsList
 
-def propagatePatch():
-  print "propagate coons patch"
+  # CONSTRUCT GRID TOPOLOGY
+  
+  listX = [c.j for c in cs[0].ch]
+  listXr = list(listX)
+  listXr.reverse()
+  listY = None
+
+  # find two orthogonal axis
+  for i in range(len(cs)):
+    l = [c.j for c in cs[i].ch]
+    if not (l==listX or l==listXr):
+      listY = l
+      break;
+
+  width = len(listX)
+  height = len(listY)
+
+  """
+  for j in range(height):
+    line = ""
+    for i in range(width):
+      line = line + "%s " % ( [listA[i], listB[j]] )
+    print line
+  """
+  
+  # construct list of quad patches
+  pairsList = []
+  for j in range(height-1):
+    for i in range(width-1):
+      pairs = 4*[None]
+      pairs[0] = [listX[i],   listY[j]]
+      pairs[1] = [listX[i],   listY[j+1]]
+      pairs[2] = [listX[i+1], listY[j+1]]
+      pairs[3] = [listX[i+1], listY[j]]
+      
+      # order to connect
+      # rearrange first pair
+      if (pairs[0][0]==pairs[1][0] or pairs[0][0]==pairs[1][1]):
+        pairs[0].reverse()
+      # rearrange rest of chain
+      for k in range(1,4):
+        if (pairs[k][0] != pairs[k-1][1]):
+          pairs[k].reverse()
+      
+      pairsList.append(pairs)
+  
+  for pairs in pairsList:
+    print "patch %s" % (pairs)
+    createCoonsPatch(pairs)
 
 
 #--------------------------------------------------------------------
@@ -334,10 +490,9 @@ class scriptedCommand(OpenMayaMPx.MPxCommand):
     
   def doIt(self, argList):
     readCrossSections()
-    printCrossSectionData1()
+    printCSData()
     minOptimize()
     propagateCurve()
-    propagatePatch()
 
 # Creator
 def cmdCreator():

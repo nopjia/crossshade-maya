@@ -293,10 +293,10 @@ def createPatchMesh(vertices, normals):
   height = len(vertices[0])
   
   cmds.polyPlane(n="tp", sx=width-1, sy=height-1, ax=[0, 0, 1])
-
+  
   for j in range(height):
     for i in range(width):
-      cmds.select("tp.vtx[%s]"%(toIdx(i,j)), r=True)
+      cmds.select("tp.vtx[%s]" % (j*width+i), r=True)
       cmds.move(vertices[i][j][0], vertices[i][j][1], vertices[i][j][2], a=True)
       cmds.polyNormalPerVertex(xyz=normals[i][j].tolist())
 
