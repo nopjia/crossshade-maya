@@ -125,7 +125,7 @@ def readCrossSections():
         
     cs[i].ch = sorted(cs[i].ch, key=lambda ch: ch.t)
   
-def printCrossSectionData1():
+def printCSData():
   global csNum
   global cs
   global chNum
@@ -266,7 +266,7 @@ def minOptimize():
         ch[j][i].nor = nor
         print "n_(%s,%s) : %s" % (i, j, ch[i][j].nor)
         
-        # cmds.spaceLocator( p=(ch[i][j].pos+ch[i][j].nor).tolist() )
+        cmds.spaceLocator( p=(ch[i][j].pos+ch[i][j].nor).tolist() )
 
 # get interpolated normal of ch_ij along curve i at t
 def getCHNormAtT(chI, chJ, tparam):
@@ -332,6 +332,9 @@ def createPatchMeshOpenMaya(vertices, normals):
   meshFS.setNormals(mNormals)
   
 def createPatchMesh(vertices, normals):
+  width = len(vertices)
+  height = len(vertices[0])
+  
   cmds.polyPlane(n="tp", sx=width-1, sy=height-1, ax=[0, 0, 1])
 
   for j in range(height):
@@ -349,13 +352,18 @@ def createPatchMesh(vertices, normals):
 
 vertices = None
 normals = None
-# input 4 pairs (i,j) of crosshair intersections in RHR order
-def createCoonsPatch(cpairs):  
-  # square patch dimension T_STEP by T_STEP
-  T_STEPS = 10  
+# input 4 pairs (i,j) of crosshair intersections, connecting indices
+def createCoonsPatch(cpairs):
+  global csNum
+  global cs
+  global chNum
+  global ch
   
   global vertices
   global normals
+
+  # square patch dimension T_STEP by T_STEP
+  T_STEPS = 10  
   
   vertices = [[None]*(T_STEPS) for x in range(T_STEPS)]
   normals = [[None]*(T_STEPS) for x in range(T_STEPS)]
@@ -365,6 +373,7 @@ def createCoonsPatch(cpairs):
   # go from each ch to ch
   for p in range(4):
     cStart = ch[ cpairs[p][1] ][ cpairs[p][0] ]
+    cEnd = None
     if p<3:
       cEnd = ch[ cpairs[p+1][0] ][ cpairs[p+1][1] ]
     else:      
@@ -395,7 +404,7 @@ def createCoonsPatch(cpairs):
       elif p == 3:
         coord = (0, T_STEPS-1-step)
       
-      print "(%s,%s)" % (coord[0], coord[1])
+      #print "(%s,%s)" % (coord[0], coord[1])
       vertices[coord[0]][coord[1]] = pos
       normals[coord[0]][coord[1]] = nor
       
@@ -403,6 +412,7 @@ def createCoonsPatch(cpairs):
       
       t = t + tStep
   
+  """
   # test 2d array
   for i in range(T_STEPS):
     line = ""
@@ -412,6 +422,7 @@ def createCoonsPatch(cpairs):
       else:
         line = line + "  "
     print line
+  """
   
   # ALONG PATCH
   
@@ -456,21 +467,65 @@ def createCoonsPatch(cpairs):
     
   createPatchMesh(vertices, normals)
 
+pairsList = None
 def propagateCurve():
   global csNum
   global cs
   global chNum
   global ch
+  
+  global pairsList
 
-  #given 4 corner points
-  cpairs = [
-    [0,3],
-    [3,1],
-    [1,2],
-    [2,0]
-  ]
+  # CONSTRUCT GRID TOPOLOGY
+  
+  listX = [c.j for c in cs[0].ch]
+  listXr = list(listX)
+  listXr.reverse()
+  listY = None
 
-  createCoonsPatch(cpairs)
+  # find two orthogonal axis
+  for i in range(len(cs)):
+    l = [c.j for c in cs[i].ch]
+    if not (l==listX or l==listXr):
+      listY = l
+      break;
+
+  width = len(listX)
+  height = len(listY)
+
+  """
+  for j in range(height):
+    line = ""
+    for i in range(width):
+      line = line + "%s " % ( [listA[i], listB[j]] )
+    print line
+  """
+  
+  # construct list of quad patches
+  pairsList = []
+  for j in range(height-1):
+    for i in range(width-1):
+      pairs = 4*[None]
+      pairs[0] = [listX[i],   listY[j]]
+      pairs[1] = [listX[i],   listY[j+1]]
+      pairs[2] = [listX[i+1], listY[j+1]]
+      pairs[3] = [listX[i+1], listY[j]]
+      
+      # order to connect
+      # rearrange first pair
+      if (pairs[0][0]==pairs[1][0] or pairs[0][0]==pairs[1][1]):
+        pairs[0].reverse()
+      # rearrange rest of chain
+      for k in range(1,4):
+        if (pairs[k][0] != pairs[k-1][1]):
+          pairs[k].reverse()
+      
+      pairsList.append(pairs)
+      print pairs
+  
+  for pairs in pairsList:
+    print pairs
+    createCoonsPatch(pairs)
         
 #----------------------------------------------------------
 # RUN COMMAND
@@ -478,7 +533,7 @@ def propagateCurve():
         
 def runCrossShade():
   readCrossSections()
-  printCrossSectionData1()
+  printCSData()
   minOptimize()
   propagateCurve()
   
