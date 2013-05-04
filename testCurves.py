@@ -248,8 +248,8 @@ def minOptimize():
         ch[i][j].tan = normalize(ch[i][j].tan)
         ch[j][i].tan = normalize(ch[j][i].tan)
         
-        print "t_(%s,%s) : %s" % (i, j, ch[i][j].tan)
-        print "t_(%s,%s) : %s" % (j, i, ch[j][i].tan)
+        #print "t_(%s,%s) : %s" % (i, j, ch[i][j].tan)
+        #print "t_(%s,%s) : %s" % (j, i, ch[j][i].tan)
         
         tanPairIdx += 2
         
@@ -264,7 +264,7 @@ def minOptimize():
         
         ch[i][j].nor = normalize(nor)
         ch[j][i].nor = nor
-        print "n_(%s,%s) : %s" % (i, j, ch[i][j].nor)
+        #print "n_(%s,%s) : %s" % (i, j, ch[i][j].nor)
         
         cmds.spaceLocator( p=(ch[i][j].pos+ch[i][j].nor).tolist() )
 
@@ -287,49 +287,6 @@ def getCHNormAtT(chI, chJ, tparam):
   rot = rotation(angle,axis)
   
   return normalize(np.dot(rot, origN))
-
-# input np.arrays
-def createPatchMeshOpenMaya(vertices, normals):
-  width = len(vertices)
-  height = len(vertices[0])
-
-  numFaces = (width-1)*(height-1)
-  numVertices = width*height
-  numFaceConnects = 4*numFaces
-
-  # enumerate x first for each y
-  mVertices = OpenMaya.MFloatPointArray()  
-  for j in range(height):
-    for i in range(width):
-      mVertices.append( OpenMaya.MFloatPoint(vertices[i][j][0], vertices[i][j][1], vertices[i][j][2]) )
-
-  toIdx = lambda x,y: y*width + x
-
-  # construct face connects
-  faceConnects = []
-  for i in range(width-1):
-    for j in range(height-1):
-      faceConnects.append(toIdx( i  , j  ))
-      faceConnects.append(toIdx( i+1, j  ))
-      faceConnects.append(toIdx( i+1, j+1))
-      faceConnects.append(toIdx( i  , j+1))
-  mFaceConnects = OpenMaya.MIntArray()
-  scriptUtil = OpenMaya.MScriptUtil()
-  scriptUtil.createIntArrayFromList( faceConnects,  mFaceConnects )
-
-  mFaceCounts = OpenMaya.MIntArray(numFaces, 4)
-
-  # create mesh
-  meshFS = OpenMaya.MFnMesh()
-  meshFS.create(numVertices, numFaces, mVertices, mFaceCounts, mFaceConnects)
-  
-  # set normals
-  
-  mNormals = OpenMaya.MFloatVectorArray()
-  for j in range(height):
-    for i in range(width):
-      mNormals.append( OpenMaya.MFloatVector(normals[i][j][0], normals[i][j][1], normals[i][j][2]) )
-  meshFS.setNormals(mNormals)
   
 def createPatchMesh(vertices, normals):
   width = len(vertices)
@@ -380,7 +337,7 @@ def createCoonsPatch(cpairs):
       cEnd = ch[ cpairs[0][0] ][ cpairs[0][1] ]
     tStep = (cEnd.t-cStart.t)/(T_STEPS-1)
     
-    print "%s to %s : %s" % (cStart.t, cEnd.t, tStep)
+    # print "%s to %s : %s" % (cStart.t, cEnd.t, tStep)
     
     # go down curve
     
@@ -408,21 +365,10 @@ def createCoonsPatch(cpairs):
       vertices[coord[0]][coord[1]] = pos
       normals[coord[0]][coord[1]] = nor
       
-      cmds.spaceLocator( p=(pos+nor).tolist() )
+      #cmds.spaceLocator( p=(pos+nor).tolist() )
       
       t = t + tStep
-  
-  """
-  # test 2d array
-  for i in range(T_STEPS):
-    line = ""
-    for j in range(T_STEPS):
-      if vertices[i][j] is not None:
-        line = line + ". "
-      else:
-        line = line + "  "
-    print line
-  """
+      
   
   # ALONG PATCH
   
@@ -521,10 +467,9 @@ def propagateCurve():
           pairs[k].reverse()
       
       pairsList.append(pairs)
-      print pairs
   
   for pairs in pairsList:
-    print pairs
+    print "patch %s" % (pairs)
     createCoonsPatch(pairs)
         
 #----------------------------------------------------------
