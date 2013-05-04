@@ -65,7 +65,7 @@ class CrossHairSingle:
     self.nor = None
 
   def __str__(self):
-    return "cs(%s)" % (self.i)
+    return "cs(%s,%s)" % (self.i, self.j)
 
 class Region:
   def __init__(self,i):
@@ -118,7 +118,8 @@ def readCrossSections():
       if rawIntersects:
         ch[i][j] = CrossHair(i,j)
         ch[j][i] = CrossHair(j,i)
-
+ 
+        # Build 1D cross hair array
         chs[chNum] = CrossHairSingle(i)
         chs[chNum].j = j
       
@@ -130,7 +131,7 @@ def readCrossSections():
         ch[i][j].pos = np.array(pi)  # save
         ch[j][i].pos = np.array(pi)
         chs[chNum].pos = np.array(pi)
-        #cmds.spaceLocator(p=pi)   # place locator        
+        cmds.spaceLocator(p=pi)   # place locator        
         
         t_ij = cmds.pointOnCurve(cs[i].name, pr=ch[i][j].t, nt=True)
         ch[i][j].tan = np.array(t_ij)
@@ -156,6 +157,20 @@ def readCrossSections():
         cs[i].ch.append(ch[i][j])
         
     cs[i].ch = sorted(cs[i].ch, key=lambda ch: ch.t)
+
+  for i in range(csNum):
+    for j in range(csNum):
+      if ch[i][j]:
+        print "[%s,%s] at (%s, %s)" % (ch[i][j].i, ch[i][j].j, ch[i][j].pos[0], ch[i][j].pos[1])
+
+  # assign correct positions to each single cross hair
+  for x in range(chNum):
+    for i in range(csNum):
+      for j in range(csNum):
+        if i == chs[x].i and j == chs[x].j:
+          print "Correcting ch position"
+          chs[x].pos = ch[i][j].pos
+          print "[%s,%s] at (%s, %s)" % (chs[x].i, chs[x].j, chs[x].pos[0], chs[x].pos[1])
   
 def printCrossSectionData1():
   global csNum
@@ -401,6 +416,146 @@ def testCreatePatch():
 
   createPatchMesh(vertices, normals)
 
+def createRegions():
+  global regions
+  global ch
+  global chs
+  global chNum
+
+  # Flip cross section i and j's if they are not CW consistent
+  '''for x in range(chNum):
+    if :
+      temp = chs[x].i
+      chs[x].i = chs[x].j
+      chs[x].j = temp'''
+  
+  # Pre-determine num of regions
+  numReg = 0
+  currentReg = 0
+
+  if chNum < 4:
+    return
+  elif chNum == 4:
+    numReg = 1
+  else:
+    numReg = np.ceil((chNum - 4)/2.0) + 1
+
+  regions = [None for x in range (numReg)]
+
+  print "Num regions: %s" % (numReg)
+
+  # Sort cross hairs
+
+  # Build regions
+  for x in range(chNum):
+    cpairs = []
+    print "[%s,%s] at (%s, %s)" % (chs[x].i, chs[x].j, chs[x].pos[0], chs[x].pos[1]) # print current cross hair
+    closest = None
+    closestD = 999
+    ################## second neighbor search ################
+    # search all other cross hairs
+    firstN = x
+    secN = -1
+    for y in range(chNum):
+      # if another cross hair has the same first term as the current's second
+      # if another cross hair is on the same curve as this one
+      # then it is a potential closest neighbor
+      if x != y and (chs[y].i == chs[x].j or chs[y].j == chs[x].j or chs[y].j == chs[x].i \
+        or chs[y].i == chs[x].i):
+        print "Checking [%s,%s] with [%s,%s]" % (chs[x].i,chs[x].j,chs[y].i,chs[y].j)
+        xd = chs[y].pos[0] - chs[x].pos[0]
+        print xd
+        yd = chs[y].pos[1] - chs[x].pos[1]
+        dist = np.sqrt(xd*xd + yd*yd)
+        # store closest neighbor based on distance
+        if closest == None and xd > 0:
+          closest = y
+          closestD = dist
+          secN = y
+        elif dist < closestD and xd > 0:
+          closest = y
+          closestD = dist
+          secN = y
+        print closestD  
+        print secN
+    if secN > -1:
+      print "secN = [%s,%s]" % (chs[secN].i,chs[secN].j)
+      #cpairs[0] = [chs[x].i, chs[x].j]
+      cpairs.append([chs[x].i, chs[x].j])
+      #cpairs[1] = [chs[secN].i, chs[secN].j]
+      cpairs.append([chs[secN].i, chs[secN].j])
+
+      ################## third neighbor search ################
+      thirdN = -1
+      closest2 = None
+      closestD2 = 999
+      for z in range(chNum):
+        # if another cross hair has the same first term as the current's second
+        # then it is a potential closest neighbor
+        if secN != z and x != z and (chs[z].i == chs[secN].j or chs[z].j == chs[secN].j or \
+          chs[z].j == chs[secN].i or chs[z].i == chs[secN].i):
+          xd = chs[z].pos[0] - chs[secN].pos[0]
+          yd = chs[z].pos[1] - chs[secN].pos[1]
+          dist = np.sqrt(xd*xd + yd*yd)
+          # store closest neighbor based on distance
+          if closest2 == None and yd < 0:
+            closest2 = z
+            closestD2 = dist
+            thirdN = z
+          elif dist < closestD2 and yd < 0:
+            closest2 = z
+            closestD2 = dist
+            thirdN = z
+          print closestD2
+          print thirdN
+      if thirdN > -1:
+        print "thirdN = [%s,%s]" % (chs[thirdN].i,chs[thirdN].j)
+        #cpairs[2] = [chs[thirdN].i, chs[thirdN].j]
+        cpairs.append([chs[thirdN].i, chs[thirdN].j])
+        ################## fourth neighbor search ################
+        fourthN = -1
+        closest3 = None
+        closestD3 = 999
+        for w in range(chNum):
+          # if another cross hair has the same first term as the current's second
+          # then it is a potential closest neighbor
+          if thirdN != w and w != x and w != z and (chs[w].i == chs[thirdN].j or \
+            chs[w].j == chs[thirdN].j or chs[w].j == chs[thirdN].i or chs[w].i == chs[thirdN].i):
+            xd = chs[w].pos[0] - chs[thirdN].pos[0]
+            yd = chs[w].pos[1] - chs[thirdN].pos[1]
+            dist = np.sqrt(xd*xd + yd*yd)
+            # store closest neighbor based on distance
+            if closest3 == None and xd < 0:
+              closest3 = w
+              closestD3 = dist
+              fourthN = w
+            elif dist < closestD3 and xd < 0:
+              closest3 = w
+              closestD3 = dist
+              fourthN = w
+            print closestD3
+        if fourthN > -1:
+          #cpairs[3] = [chs[fourthN].i, chs[fourthN].j]
+          print "fourthN = [%s,%s]" % (chs[fourthN].i,chs[fourthN].j)
+          cpairs.append([chs[fourthN].i, chs[fourthN].j])
+
+    # add region if cpairs is full
+    if len(cpairs) == 4 and currentReg < numReg:
+      regions[currentReg] = Region(currentReg)
+      regions[currentReg].corners = cpairs
+      currentReg = currentReg + 1  
+
+  # Print all regions
+  for x in range(numReg):
+    if regions[x]:
+      print "Region %s" % (regions[x].ID)
+      print "[%s, %s]" % (regions[x].corners[0][0], regions[x].corners[0][1])
+      print "[%s, %s]" % (regions[x].corners[1][0], regions[x].corners[1][1])
+      print "[%s, %s]" % (regions[x].corners[2][0], regions[x].corners[2][1])
+      print "[%s, %s]" % (regions[x].corners[3][0], regions[x].corners[3][1])
+
+
+
 
 def propagateCurve():
   global csNum
@@ -412,7 +567,7 @@ def propagateCurve():
   global regions
 
   # TO DO: generalize
-  regions = [None for x in range (0,4)]
+  """regions = [None for x in range (0,4)]
   regions[0] = Region(0)
   regions[0].corners = [
     [0,3],
@@ -440,149 +595,154 @@ def propagateCurve():
     [4,5],
     [5,3],
     [3,1]
-  ]
+  ]"""
   
-  for y in range(4):
+  # TO DO: number of regions
+  numRegions = 1
+
+  for y in range(numRegions):
+    #region null check
+    if regions[y]:
 
 
-    # square patch dimension T_STEP by T_STEP
-    T_STEPS = 10
+      # square patch dimension T_STEP by T_STEP
+      T_STEPS = 10
 
-   #given 4 corner points, CW
-    """cpairs = [
-      [0,3],
-      [3,1],
-      [1,2],
-      [2,0]
-    ]"""
-    cpairs = regions[y].corners
+     #given 4 corner points, CW
+      cpairs = [
+        [0,3],
+        [3,1],
+        [1,2],
+        [2,0]
+      ]
+      #cpairs = regions[y].corners
 
 
-    vertices = [[None]*(T_STEPS) for x in range(T_STEPS)]
-    normals = [[None]*(T_STEPS) for x in range(T_STEPS)]
-      
-    # ALONG CURVE
-      
-    # go from each ch to ch
-    for p in range(4):
-      cStart = ch[ cpairs[p][1] ][ cpairs[p][0] ]
-      if p<3:
-        cEnd = ch[ cpairs[p+1][0] ][ cpairs[p+1][1] ]
-      else:      
-        cEnd = ch[ cpairs[0][0] ][ cpairs[0][1] ]
-      tStep = (cEnd.t-cStart.t)/(T_STEPS-1)
+      vertices = [[None]*(T_STEPS) for x in range(T_STEPS)]
+      normals = [[None]*(T_STEPS) for x in range(T_STEPS)]
         
-      print "%s to %s : %s" % (cStart.t, cEnd.t, tStep)
-    
-      # go down curve
+      # ALONG CURVE
         
-      t = cStart.t
-      #cmds.spaceLocator( p=cmds.pointOnCurve(cs[cStart.i].name, pr=t, p=True))
-
-      for step in range(T_STEPS-1):    
-        # get position
-        pos = np.array(cmds.pointOnCurve(cs[cStart.i].name, pr=t, p=True))
+      # go from each ch to ch
+      for p in range(4):
+        cStart = ch[ cpairs[p][1] ][ cpairs[p][0] ]
+        if p<3:
+          cEnd = ch[ cpairs[p+1][0] ][ cpairs[p+1][1] ]
+        else:      
+          cEnd = ch[ cpairs[0][0] ][ cpairs[0][1] ]
+        tStep = (cEnd.t-cStart.t)/(T_STEPS-1)
           
-        # get normal
-        nor1 = getCHNormAtT(cStart.i, cStart.j, t)
-        nor2 = getCHNormAtT(cEnd.i, cEnd.j, t)      
-        blendT = (t-cStart.t) / (cEnd.t-cStart.t)
-        nor = blendT*nor2+(1-blendT)*nor1
-          
-        if p == 0:
-          coord = (step,0)
-        elif p == 1:
-          coord = (T_STEPS-1,step)
-        elif p == 2:
-          coord = (T_STEPS-1-step,T_STEPS-1)
-        elif p == 3:
-          coord = (0, T_STEPS-1-step)
-          
-        print "(%s,%s)" % (coord[0], coord[1])
-        vertices[coord[0]][coord[1]] = pos
-        normals[coord[0]][coord[1]] = nor
-        
-        #cmds.spaceLocator( p=(pos+nor).tolist() )
-        
-        t = t + tStep
-    
-    # test 2d array
-    for i in range(T_STEPS):
-      line = ""
-      for j in range(T_STEPS):
-        if vertices[i][j] is not None:
-          line = line + ". "
-        else:
-          line = line + "  "
-      print line
-
-
-    """halfway = (T_STEPS)/2.0 #5.0
-    inc = 0.5
-    incF = 0.5
-    print halfway
-    # Set z values
-    for i in range(1, T_STEPS - 1):
-      vertices[i][0][2] = vertices[i][0][2] + inc
-      vertices[0][i][2] = vertices[0][i][2] + inc
-      vertices[i][T_STEPS-1][2] = vertices[i][T_STEPS-1][2] + inc
-      vertices[T_STEPS-1][i][2] = vertices[T_STEPS-1][i][2] + inc
-      if i < halfway:
-        incF = incF/2.0
-        inc = inc + incF
-      elif i > halfway:
-        incF = incF*2.0
-        inc = inc - incF
-      print inc"""
-          
-      #print vertices[i][0][2]
-      #print vertices[0][i][2]
-
+        print "%s to %s : %s" % (cStart.t, cEnd.t, tStep)
       
-    # ALONG PATCH
-      
-    n = T_STEPS-1
-      
-    for i in range(1, T_STEPS-1):
-      for j in range(1, T_STEPS-1):      
+        # go down curve
           
-        vertices[i][j] = np.array([0.0,0.0,0.0])
-        normals[i][j] = np.array([0.0,0.0,0.0])
-        
-        fi = float(i)
-        fj = float(j)
-        
-        for k in range(3):
+        t = cStart.t
+        #cmds.spaceLocator( p=cmds.pointOnCurve(cs[cStart.i].name, pr=t, p=True))
+
+        for step in range(T_STEPS-1):    
+          # get position
+          pos = np.array(cmds.pointOnCurve(cs[cStart.i].name, pr=t, p=True))
             
-          vertices[i][j][k] = (
-            (1.0-fi/n)*vertices[0][j][k] + fi/n*vertices[n][j][k] +
-            (1.0-fj/n)*vertices[i][0][k] + fj/n*vertices[i][n][k] -
-            (
-              vertices[0][0][k]+(vertices[n][0][k]-vertices[0][0][k])*(fi/n) + 
-              (
-                (vertices[0][n][k]+(vertices[n][n][k]-vertices[0][n][k])*(fi/n)) - 
-                (vertices[0][0][k]+(vertices[n][0][k]-vertices[0][0][k])*(fi/n))
-              ) * (fj/n)
-            )
-          )
+          # get normal
+          nor1 = getCHNormAtT(cStart.i, cStart.j, t)
+          nor2 = getCHNormAtT(cEnd.i, cEnd.j, t)      
+          blendT = (t-cStart.t) / (cEnd.t-cStart.t)
+          nor = blendT*nor2+(1-blendT)*nor1
+            
+          if p == 0:
+            coord = (step,0)
+          elif p == 1:
+            coord = (T_STEPS-1,step)
+          elif p == 2:
+            coord = (T_STEPS-1-step,T_STEPS-1)
+          elif p == 3:
+            coord = (0, T_STEPS-1-step)
+            
+          print "(%s,%s)" % (coord[0], coord[1])
+          vertices[coord[0]][coord[1]] = pos
+          normals[coord[0]][coord[1]] = nor
           
-          normals[i][j][k] = (
-            (1.0-fi/n)*normals[0][j][k] + fi/n*normals[n][j][k] +
-            (1.0-fj/n)*normals[i][0][k] + fj/n*normals[i][n][k] -
-            (
-              normals[0][0][k]+(normals[n][0][k]-normals[0][0][k])*(fi/n) + 
+          #cmds.spaceLocator( p=(pos+nor).tolist() )
+          
+          t = t + tStep
+      
+      # test 2d array
+      for i in range(T_STEPS):
+        line = ""
+        for j in range(T_STEPS):
+          if vertices[i][j] is not None:
+            line = line + ". "
+          else:
+            line = line + "  "
+        print line
+
+
+      """halfway = (T_STEPS)/2.0 #5.0
+      inc = 0.5
+      incF = 0.5
+      print halfway
+      # Set z values
+      for i in range(1, T_STEPS - 1):
+        vertices[i][0][2] = vertices[i][0][2] + inc
+        vertices[0][i][2] = vertices[0][i][2] + inc
+        vertices[i][T_STEPS-1][2] = vertices[i][T_STEPS-1][2] + inc
+        vertices[T_STEPS-1][i][2] = vertices[T_STEPS-1][i][2] + inc
+        if i < halfway:
+          incF = incF/2.0
+          inc = inc + incF
+        elif i > halfway:
+          incF = incF*2.0
+          inc = inc - incF
+        print inc"""
+            
+        #print vertices[i][0][2]
+        #print vertices[0][i][2]
+
+        
+      # ALONG PATCH
+        
+      n = T_STEPS-1
+        
+      for i in range(1, T_STEPS-1):
+        for j in range(1, T_STEPS-1):      
+            
+          vertices[i][j] = np.array([0.0,0.0,0.0])
+          normals[i][j] = np.array([0.0,0.0,0.0])
+          
+          fi = float(i)
+          fj = float(j)
+          
+          for k in range(3):
+              
+            vertices[i][j][k] = (
+              (1.0-fi/n)*vertices[0][j][k] + fi/n*vertices[n][j][k] +
+              (1.0-fj/n)*vertices[i][0][k] + fj/n*vertices[i][n][k] -
               (
-                (normals[0][n][k]+(normals[n][n][k]-normals[0][n][k])*(fi/n)) - 
-                (normals[0][0][k]+(normals[n][0][k]-normals[0][0][k])*(fi/n))
-              ) * (fj/n)
+                vertices[0][0][k]+(vertices[n][0][k]-vertices[0][0][k])*(fi/n) + 
+                (
+                  (vertices[0][n][k]+(vertices[n][n][k]-vertices[0][n][k])*(fi/n)) - 
+                  (vertices[0][0][k]+(vertices[n][0][k]-vertices[0][0][k])*(fi/n))
+                ) * (fj/n)
+              )
             )
-          )
-    #for x in range(1, n):
-      #for y in range(1, n):
-        #cmds.spaceLocator(p=vertices[x][y])
-    createPatchMesh(vertices, normals)
-    #print "Y VALUE"
-    #print y
+            
+            normals[i][j][k] = (
+              (1.0-fi/n)*normals[0][j][k] + fi/n*normals[n][j][k] +
+              (1.0-fj/n)*normals[i][0][k] + fj/n*normals[i][n][k] -
+              (
+                normals[0][0][k]+(normals[n][0][k]-normals[0][0][k])*(fi/n) + 
+                (
+                  (normals[0][n][k]+(normals[n][n][k]-normals[0][n][k])*(fi/n)) - 
+                  (normals[0][0][k]+(normals[n][0][k]-normals[0][0][k])*(fi/n))
+                ) * (fj/n)
+              )
+            )
+      #for x in range(1, n):
+        #for y in range(1, n):
+          #cmds.spaceLocator(p=vertices[x][y])
+      createPatchMesh(vertices, normals)
+      #print "Y VALUE"
+      #print y
 
 
   #createPatchMesh(vertices, normals)
@@ -596,6 +756,7 @@ def runCrossShade():
   readCrossSections()
   printCrossSectionData1()
   minOptimize()
-  propagateCurve()
+  createRegions()
+  #propagateCurve()
   
 runCrossShade()
