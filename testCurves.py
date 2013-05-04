@@ -331,40 +331,11 @@ def createPatchMesh(vertices, normals):
       mNormals.append( OpenMaya.MFloatVector(normals[i][j][0], normals[i][j][1], normals[i][j][2]) )
   meshFS.setNormals(mNormals)
 
-def testCreatePatch():
-  width = 6
-  height = 4
-  
-  vertices = [[None]*height for x in range(width)]
-  for i in range(width):
-    for j in range(height):
-      vertices[i][j] = np.array([i*0.75, j*0.75, 0.0])
-      
-  normals = [[None]*height for x in range(width)]
-  for i in range(width):
-    for j in range(height):
-      normals[i][j] = normalize( np.array([ 0.0, float(height-j)/height, 1.0-float(height-j)/height]) )
-
-  createPatchMesh(vertices, normals)
-
-
-def propagateCurve():
-  global csNum
-  global cs
-  global chNum
-  global ch
-  
+# input 4 pairs (i,j) of crosshair intersections in RHR order
+def createCoonsPatch(cpairs):  
   # square patch dimension T_STEP by T_STEP
-  T_STEPS = 10
-
-  #given 4 corner points
-  cpairs = [
-    [0,3],
-    [3,1],
-    [1,2],
-    [2,0]
-  ]
-
+  T_STEPS = 10  
+  
   vertices = [[None]*(T_STEPS) for x in range(T_STEPS)]
   normals = [[None]*(T_STEPS) for x in range(T_STEPS)]
   
@@ -459,8 +430,26 @@ def propagateCurve():
             ) * (fj/n)
           )
         )
-  
+
+      # cmds.spaceLocator( p=(vertices[i][j]+normals[i][j]).tolist() )
+    
   createPatchMesh(vertices, normals)
+
+def propagateCurve():
+  global csNum
+  global cs
+  global chNum
+  global ch
+
+  #given 4 corner points
+  cpairs = [
+    [0,3],
+    [3,1],
+    [1,2],
+    [2,0]
+  ]
+
+  createCoonsPatch(cpairs)
         
 #----------------------------------------------------------
 # RUN COMMAND
