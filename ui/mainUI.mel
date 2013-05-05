@@ -48,6 +48,7 @@ global proc browseFile() {
 
   // attach image plane to front camera view
   cameraImagePlaneUpdate front $imagePlaneName;
+  setAttr "imagePlane1.centerZ" -1;
 }
 
 global proc runCommand() {
