@@ -14,18 +14,6 @@ import scipy.optimize
 # ALGORITHM
 #--------------------------------------------------------------------
 
-import sys
-
-import maya.OpenMaya as OpenMaya
-import maya.OpenMayaMPx as OpenMayaMPx
-import maya.cmds as cmds
-import maya.mel as mel
-
-import numpy as np
-import scipy as sp
-import scipy.optimize
-
-
 def drange(start, stop, step):
   r = start
   while r < stop:
