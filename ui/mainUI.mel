@@ -51,9 +51,12 @@ global proc browseFile() {
 }
 
 global proc runCommand() {
-  // int $value = `intSliderGrp -q -v fieldValue`;
-  print ("run crossshade\n");
+  if (size(`ls -sl`)<=1) {
+    error "please select more one or more curves";
+    return;
+  }
   
+  print ("run crossshade\n");  
   CrossShadeCmd;
 }
 
