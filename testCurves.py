@@ -61,7 +61,7 @@ def readCrossSections():
   global chNum
   global ch
 
-  mel.eval("layerEditorSelectObjects layerCross;")
+  #mel.eval("layerEditorSelectObjects layerCross;")
   curveNames = mel.eval("ls -sl -type transform")
 
   # no curve drawn

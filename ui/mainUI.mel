@@ -1,5 +1,4 @@
 global string $windowname = "CrossShadeWindow";
-global string $layername = "layerCross";
 
 global proc createCrossShadeDialog() {
   global string $windowname;
@@ -22,16 +21,10 @@ global proc createCrossShadeDialog() {
     // -value 2.0
     // fieldValue;
     
-  button -label "Register Curves" -c "addCurves()";
   button -label "Run CrossShade" -c "runCommand()";
   button -label "Add Light" -c "addLight()";
   
   showWindow $window;
-}
-
-global proc addCurves() {
-  editDisplayLayerMembers -noRecurse layerCross `ls -selection`;
-  select -cl;
 }
 
 global proc addLight() {
@@ -64,17 +57,9 @@ global proc runCommand() {
   CrossShadeCmd;
 }
 
-global proc initCrossShade() {
-  global string $layername;
-  
+global proc initCrossShade() {  
   lookThroughModelPanel front modelPanel4;
   createCrossShadeDialog();
-  
-  // create layers
-  if (!`objExists $layername`) {
-    createDisplayLayer -name "layerCross" -number 1 -empty;
-    setAttr layerCross.color 13;
-  }
 }
 
 global proc createCrossShadeUI() {
