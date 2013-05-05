@@ -58,11 +58,16 @@ ch = None    # cross hair t-parameter
 vertices = None # vertex locations
 
 class CrossHairSingle:
-  def __init__(self,i):
-    self.i = i
+  def __init__(self):
+    self.i = -1
+    self.iName = None
     self.j = -1
+    self.jName = None
+    self.iT = -1
+    self.jT = -1
     self.pos = None
     self.nor = None
+    self.dist = 999
 
   def __str__(self):
     return "cs(%s,%s)" % (self.i, self.j)
@@ -77,6 +82,8 @@ class Region:
 
 chs = None
 regions = None
+numReg = 0
+grid = None
 
 def readCrossSections():
   global csNum
@@ -120,14 +127,19 @@ def readCrossSections():
         ch[j][i] = CrossHair(j,i)
  
         # Build 1D cross hair array
-        chs[chNum] = CrossHairSingle(i)
+        chs[chNum] = CrossHairSingle()
+        chs[chNum].i = i
         chs[chNum].j = j
+        chs[chNum].iName = cs[i].name
+        chs[chNum].jName = cs[j].name
       
         intersects = [float(k) for k in rawIntersects.split()]
         ch[i][j].t = intersects[0]
         ch[j][i].t = intersects[1]
+        chs[chNum].iT = intersects[0]
+        chs[chNum].jT = intersects[1]
         
-        pi = cmds.pointOnCurve(cs[i].name, pr=ch[i][j].t, p=True)        
+        pi = cmds.pointOnCurve(cs[i].name, pr=ch[i][j].t, p=True)   
         ch[i][j].pos = np.array(pi)  # save
         ch[j][i].pos = np.array(pi)
         chs[chNum].pos = np.array(pi)
@@ -140,12 +152,12 @@ def readCrossSections():
         ch[j][i].tan = np.array(t_ji)
         
         
-        print "(%s,%s) processed" % (i, j)
+        print "[%s,%s] processed at (%s,%s)" % (i, j, pi[0], pi[1])  
         
         chNum += 1
         
       else:
-        print "(%s,%s) no intersect" % (i, j)
+        print "[%s,%s] no intersect" % (i, j)
   
   # clear all selection
   mel.eval("select -cl")
@@ -163,14 +175,9 @@ def readCrossSections():
       if ch[i][j]:
         print "[%s,%s] at (%s, %s)" % (ch[i][j].i, ch[i][j].j, ch[i][j].pos[0], ch[i][j].pos[1])
 
-  # assign correct positions to each single cross hair
+  # Print all cross hairs in chs
   for x in range(chNum):
-    for i in range(csNum):
-      for j in range(csNum):
-        if i == chs[x].i and j == chs[x].j:
-          print "Correcting ch position"
-          chs[x].pos = ch[i][j].pos
-          print "[%s,%s] at (%s, %s)" % (chs[x].i, chs[x].j, chs[x].pos[0], chs[x].pos[1])
+    print "Cross Hair Single [%s,%s] at (%s, %s)" % (chs[x].i, chs[x].j, chs[x].pos[0], chs[x].pos[1])
   
 def printCrossSectionData1():
   global csNum
@@ -416,19 +423,56 @@ def testCreatePatch():
 
   createPatchMesh(vertices, normals)
 
+def getMaxI(x):
+  mi1 = cmds.pointOnCurve(chs[x].iName, pr=cmds.getAttr(chs[x].iName + '.maxValue'), p=True)
+  mi2 = cmds.pointOnCurve(chs[x].iName, pr=cmds.getAttr(chs[x].iName + '.minValue'), p=True)
+  if mi1[0] > mi2[0]:
+    maxI = cmds.pointOnCurve(chs[x].iName, pr=cmds.getAttr(chs[x].iName + '.maxValue'), p=True)   
+  else:
+    maxI = cmds.pointOnCurve(chs[x].iName, pr=cmds.getAttr(chs[x].iName + '.minValue'), p=True) 
+
+  return maxI 
+
+
+def getMaxJ(x):
+  mj1 = cmds.pointOnCurve(chs[x].jName, pr=cmds.getAttr(chs[x].jName + '.maxValue'), p=True)  
+  mj2 = cmds.pointOnCurve(chs[x].jName, pr=cmds.getAttr(chs[x].jName + '.minValue'), p=True)  
+  if mj1[0] > mj2[0]:
+    maxJ = cmds.pointOnCurve(chs[x].jName, pr=cmds.getAttr(chs[x].jName + '.maxValue'), p=True)  
+  else:
+    maxJ = cmds.pointOnCurve(chs[x].jName, pr=cmds.getAttr(chs[x].jName + '.minValue'), p=True) 
+
+  return maxJ
+
+def getMinI(x):
+  mi1 = cmds.pointOnCurve(chs[x].iName, pr=cmds.getAttr(chs[x].iName + '.maxValue'), p=True)
+  mi2 = cmds.pointOnCurve(chs[x].iName, pr=cmds.getAttr(chs[x].iName + '.minValue'), p=True)
+  if mi1[0] < mi2[0]:
+    maxI = cmds.pointOnCurve(chs[x].iName, pr=cmds.getAttr(chs[x].iName + '.maxValue'), p=True)   
+  else:
+    maxI = cmds.pointOnCurve(chs[x].iName, pr=cmds.getAttr(chs[x].iName + '.minValue'), p=True) 
+
+  return maxI 
+
+
+def getMinJ(x):
+  mj1 = cmds.pointOnCurve(chs[x].jName, pr=cmds.getAttr(chs[x].jName + '.maxValue'), p=True)  
+  mj2 = cmds.pointOnCurve(chs[x].jName, pr=cmds.getAttr(chs[x].jName + '.minValue'), p=True)  
+  if mj1[0] < mj2[0]:
+    maxJ = cmds.pointOnCurve(chs[x].jName, pr=cmds.getAttr(chs[x].jName + '.maxValue'), p=True)  
+  else:
+    maxJ = cmds.pointOnCurve(chs[x].jName, pr=cmds.getAttr(chs[x].jName + '.minValue'), p=True) 
+
+  return maxJ
+
+
 def createRegions():
   global regions
   global ch
   global chs
   global chNum
+  global numReg
 
-  # Flip cross section i and j's if they are not CW consistent
-  '''for x in range(chNum):
-    if :
-      temp = chs[x].i
-      chs[x].i = chs[x].j
-      chs[x].j = temp'''
-  
   # Pre-determine num of regions
   numReg = 0
   currentReg = 0
@@ -438,13 +482,12 @@ def createRegions():
   elif chNum == 4:
     numReg = 1
   else:
-    numReg = np.ceil((chNum - 4)/2.0) + 1
+    #numReg = np.ceil((chNum - 4)/2.0) + 1
+    numReg = np.floor((chNum - 4)/2.0) + 2
 
   regions = [None for x in range (numReg)]
-
   print "Num regions: %s" % (numReg)
 
-  # Sort cross hairs
 
   # Build regions
   for x in range(chNum):
@@ -466,7 +509,8 @@ def createRegions():
         xd = chs[y].pos[0] - chs[x].pos[0]
         print xd
         yd = chs[y].pos[1] - chs[x].pos[1]
-        dist = np.sqrt(xd*xd + yd*yd)
+        #dist = np.sqrt(xd*xd + yd*yd)
+        dist = np.sqrt(np.fabs(xd) + yd*yd)
         # store closest neighbor based on distance
         if closest == None and xd > 0:
           closest = y
@@ -480,10 +524,20 @@ def createRegions():
         print secN
     if secN > -1:
       print "secN = [%s,%s]" % (chs[secN].i,chs[secN].j)
-      #cpairs[0] = [chs[x].i, chs[x].j]
-      cpairs.append([chs[x].i, chs[x].j])
+      #cpairs[0] = [chs[x].i, chs[x].j]   
+      maxI = getMaxI(x)
+      maxJ = getMaxJ(x)
+      if maxI[0] > maxJ[0]:
+        cpairs.append([chs[x].j, chs[x].i])
+      else:
+        cpairs.append([chs[x].i, chs[x].j])
       #cpairs[1] = [chs[secN].i, chs[secN].j]
-      cpairs.append([chs[secN].i, chs[secN].j])
+      maxI = getMinI(secN)
+      maxJ = getMinJ(secN)
+      if maxI[0] > maxJ[0]:
+        cpairs.append([chs[secN].j, chs[secN].i])
+      else:
+        cpairs.append([chs[secN].i, chs[secN].j])
 
       ################## third neighbor search ################
       thirdN = -1
@@ -494,9 +548,11 @@ def createRegions():
         # then it is a potential closest neighbor
         if secN != z and x != z and (chs[z].i == chs[secN].j or chs[z].j == chs[secN].j or \
           chs[z].j == chs[secN].i or chs[z].i == chs[secN].i):
+          print "Checking [%s,%s] with [%s,%s]" % (chs[secN].i,chs[secN].j,chs[z].i,chs[z].j)
           xd = chs[z].pos[0] - chs[secN].pos[0]
           yd = chs[z].pos[1] - chs[secN].pos[1]
-          dist = np.sqrt(xd*xd + yd*yd)
+          #dist = np.sqrt(xd*xd + yd*yd)
+          dist = np.sqrt(xd*xd + np.fabs(yd))
           # store closest neighbor based on distance
           if closest2 == None and yd < 0:
             closest2 = z
@@ -510,8 +566,12 @@ def createRegions():
           print thirdN
       if thirdN > -1:
         print "thirdN = [%s,%s]" % (chs[thirdN].i,chs[thirdN].j)
-        #cpairs[2] = [chs[thirdN].i, chs[thirdN].j]
-        cpairs.append([chs[thirdN].i, chs[thirdN].j])
+        maxI = getMinI(thirdN)
+        maxJ = getMinJ(thirdN)
+        if maxI[0] < maxJ[0]:  
+          cpairs.append([chs[thirdN].j, chs[thirdN].i])
+        else:
+          cpairs.append([chs[thirdN].i, chs[thirdN].j])
         ################## fourth neighbor search ################
         fourthN = -1
         closest3 = None
@@ -523,7 +583,8 @@ def createRegions():
             chs[w].j == chs[thirdN].j or chs[w].j == chs[thirdN].i or chs[w].i == chs[thirdN].i):
             xd = chs[w].pos[0] - chs[thirdN].pos[0]
             yd = chs[w].pos[1] - chs[thirdN].pos[1]
-            dist = np.sqrt(xd*xd + yd*yd)
+            #dist = np.sqrt(xd*xd + yd*yd)
+            dist = np.sqrt(np.fabs(xd) + yd*yd)
             # store closest neighbor based on distance
             if closest3 == None and xd < 0:
               closest3 = w
@@ -537,7 +598,12 @@ def createRegions():
         if fourthN > -1:
           #cpairs[3] = [chs[fourthN].i, chs[fourthN].j]
           print "fourthN = [%s,%s]" % (chs[fourthN].i,chs[fourthN].j)
-          cpairs.append([chs[fourthN].i, chs[fourthN].j])
+          maxI = getMaxI(fourthN)
+          maxJ = getMaxJ(fourthN)
+          if maxI[0] < maxJ[0]:
+            cpairs.append([chs[fourthN].j, chs[fourthN].i])
+          else:
+            cpairs.append([chs[fourthN].i, chs[fourthN].j])
 
     # add region if cpairs is full
     if len(cpairs) == 4 and currentReg < numReg:
@@ -555,8 +621,6 @@ def createRegions():
       print "[%s, %s]" % (regions[x].corners[3][0], regions[x].corners[3][1])
 
 
-
-
 def propagateCurve():
   global csNum
   global cs
@@ -565,6 +629,7 @@ def propagateCurve():
 
   global vertices
   global regions
+  global numReg
 
   # TO DO: generalize
   """regions = [None for x in range (0,4)]
@@ -596,11 +661,8 @@ def propagateCurve():
     [5,3],
     [3,1]
   ]"""
-  
-  # TO DO: number of regions
-  numRegions = 1
 
-  for y in range(numRegions):
+  for y in range(numReg):
     #region null check
     if regions[y]:
 
@@ -609,13 +671,13 @@ def propagateCurve():
       T_STEPS = 10
 
      #given 4 corner points, CW
-      cpairs = [
+      """cpairs = [
         [0,3],
         [3,1],
         [1,2],
         [2,0]
-      ]
-      #cpairs = regions[y].corners
+      ]"""
+      cpairs = regions[y].corners
 
 
       vertices = [[None]*(T_STEPS) for x in range(T_STEPS)]
@@ -757,6 +819,6 @@ def runCrossShade():
   printCrossSectionData1()
   minOptimize()
   createRegions()
-  #propagateCurve()
+  propagateCurve()
   
 runCrossShade()
