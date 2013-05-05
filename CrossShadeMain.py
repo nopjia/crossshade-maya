@@ -65,7 +65,7 @@ def readCrossSections():
   global chNum
   global ch
 
-  mel.eval("layerEditorSelectObjects layerCross;")
+  #mel.eval("layerEditorSelectObjects layerCross;")
   curveNames = mel.eval("ls -sl -type transform")
 
   # no curve drawn
@@ -268,9 +268,8 @@ def minOptimize():
         
         ch[i][j].nor = normalize(nor)
         ch[j][i].nor = nor
-        #print "n_(%s,%s) : %s" % (i, j, ch[i][j].nor)
-        
-        cmds.spaceLocator( p=(ch[i][j].pos+ch[i][j].nor).tolist() )
+        #print "n_(%s,%s) : %s" % (i, j, ch[i][j].nor)        
+        #cmds.spaceLocator( p=(ch[i][j].pos+ch[i][j].nor).tolist() )
 
 # get interpolated normal of ch_ij along curve i at t
 def getCHNormAtT(chI, chJ, tparam):
@@ -297,7 +296,7 @@ def createPatchMesh(vertices, normals):
   height = len(vertices[0])
   
   cmds.polyPlane(n="tp", sx=width-1, sy=height-1, ax=[0, 0, 1])
-
+  
   for j in range(height):
     for i in range(width):
       cmds.select("tp.vtx[%s]" % (j*width+i), r=True)
@@ -346,15 +345,20 @@ def createCoonsPatch(cpairs):
     # go down curve
     
     t = cStart.t
-    for step in range(T_STEPS-1):    
-      # get position
-      pos = np.array(cmds.pointOnCurve(cs[cStart.i].name, pr=t, p=True))
+    for step in range(T_STEPS-1):
       
-      # get normal
-      nor1 = getCHNormAtT(cStart.i, cStart.j, t)
-      nor2 = getCHNormAtT(cEnd.i, cEnd.j, t)      
-      blendT = (t-cStart.t) / (cEnd.t-cStart.t)
-      nor = blendT*nor2+(1-blendT)*nor1
+      if step == 0:
+        pos = cStart.pos
+        nor = cStart.nor
+      else:
+        # get position
+        pos = np.array(cmds.pointOnCurve(cs[cStart.i].name, pr=t, p=True))
+        
+        # get normal
+        nor1 = getCHNormAtT(cStart.i, cStart.j, t)
+        nor2 = getCHNormAtT(cEnd.i, cEnd.j, t)      
+        blendT = (t-cStart.t) / (cEnd.t-cStart.t)
+        nor = blendT*nor2+(1-blendT)*nor1
       
       if p == 0:
         coord = (step,0)
@@ -475,7 +479,7 @@ def propagateCurve():
   for pairs in pairsList:
     print "patch %s" % (pairs)
     createCoonsPatch(pairs)
-
+    
 
 #--------------------------------------------------------------------
 # COMMAND
@@ -489,7 +493,14 @@ class scriptedCommand(OpenMayaMPx.MPxCommand):
     OpenMayaMPx.MPxCommand.__init__(self)
     
   def doIt(self, argList):
+    global chNum
+
     readCrossSections()
+    
+    if chNum <= 0: 
+      cmds.warning("No crosshairs found.")
+      return      
+    
     printCSData()
     minOptimize()
     propagateCurve()

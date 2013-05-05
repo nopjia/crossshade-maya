@@ -1,10 +1,5 @@
 global string $windowname = "CrossShadeWindow";
 
-global int $prevRadioSelect = 0;
-global string $curvesCross[];
-global string $curvesSilhouette[];
-global string $curvesEdge[];
-
 global proc createCrossShadeDialog() {
   global string $windowname;
 
@@ -26,15 +21,15 @@ global proc createCrossShadeDialog() {
     // -value 2.0
     // fieldValue;
     
-  radioButtonGrp -label "Curve Mode" -cal 1 left
-    -onCommand "addCurves()"
-    -numberOfRadioButtons 3    
-    -labelArray3 "Cross Section" "Edge" "Silhouette"
-    radioCurveMode;
-    
   button -label "Run CrossShade" -c "runCommand()";
+  button -label "Add Light" -c "addLight()";
   
   showWindow $window;
+}
+
+global proc addLight() {
+  pointLight;
+  move -a 5 5 5;
 }
 
 global proc deleteCrossShadeDialog() {
@@ -45,114 +40,29 @@ global proc deleteCrossShadeDialog() {
 
 global proc browseFile() {
   string $filePath = `fileDialog -m 0`;
-  textFieldButtonGrp -e -text $filePath fieldBrowse;
-
-  // setup plane + load image
-  //$FIXED_HEIGHT = 17;
-  //$bgplane = `polyPlane -n crossShadeBgPlane -w $FIXED_HEIGHT -h $FIXED_HEIGHT`;  
-  
-  //setAttr ($bgplane[0]+".rotateX") 90;
-  //$aspect = 1.6;  // to be calculated
-  //setAttr ($bgplane[1]+".width") ($aspect*$FIXED_HEIGHT);
-  
-  // Move plane forward by 0.01 in Z so it is above the grid lines
-  // setAttr "crossShadeBgPlane.translateZ" 0.001;
- 
+  textFieldButtonGrp -e -text $filePath fieldBrowse; 
   
   // create a new image plane
   string $imagePlaneName = `createNode imagePlane`;
   setAttr ( $imagePlaneName + ".imageName" ) -type "string" $filePath;
 
-  // attach image plane to front camera view    
+  // attach image plane to front camera view
   cameraImagePlaneUpdate front $imagePlaneName;
 }
 
-global proc addCurves() {
-  global int $prevRadioSelect;
-  global string $curvesCross[];
-  global string $curvesSilhouette[];
-  global string $curvesEdge[];
-
-  int $radioSelect = `radioButtonGrp -q -select radioCurveMode`;
-  
-  if ($prevRadioSelect != 0) {
-    string $mode;
-    switch ($prevRadioSelect) {
-    case 1:
-      $mode = "layerCross";
-      break;
-    case 2:
-      $mode = "layerEdge";
-      break;
-    case 3:
-      $mode = "layerSilhouette";
-      break;
-    }
-  
-    print ("adding curves to "+$mode+"\n");
-    
-    select -all;
-    string $listAll[] = `ls -sl -type "transform"`;
-    select -cl;
-    
-    // check for "curve"
-    // if not already in a list, append to list
-    for ($s in $listAll) {
-      if ( size(`match "curve" $s`) && 
-        stringArrayContains($s, $curvesCross) == 0 &&
-        stringArrayContains($s, $curvesEdge) == 0 &&
-        stringArrayContains($s, $curvesSilhouette) == 0 
-      ) {
-      
-        switch ($prevRadioSelect) {
-        case 1:
-          $curvesCross[ size($curvesCross) ] = $s;
-          break;
-        case 2:
-          $curvesEdge[ size($curvesEdge) ] = $s;
-          break;
-        case 3:
-          $curvesSilhouette[ size($curvesSilhouette) ] = $s;
-          break;
-        }
-        
-      }
-    }
-    
-    switch ($prevRadioSelect) {
-    case 1:
-      editDisplayLayerMembers $mode $curvesCross;
-      break;
-    case 2:
-      editDisplayLayerMembers $mode $curvesEdge;
-      break;
-    case 3:
-      editDisplayLayerMembers $mode $curvesSilhouette;
-      break;
-    }
+global proc runCommand() {
+  if (size(`ls -sl`)<=1) {
+    error "please select more one or more curves";
+    return;
   }
   
-  $prevRadioSelect = $radioSelect;
-}
-
-global proc runCommand() {
-  // int $value = `intSliderGrp -q -v fieldValue`;
-  print ("run crossshade\n");
-  
+  print ("run crossshade\n");  
   CrossShadeCmd;
 }
 
-global proc initCrossShade() {
+global proc initCrossShade() {  
   lookThroughModelPanel front modelPanel4;
   createCrossShadeDialog();
-  
-  // create layers
-  createDisplayLayer -name "layerCross" -number 1 -empty;
-  setAttr layerCross.color 13;
-  createDisplayLayer -name "layerSilhouette" -number 2 -empty;
-  setAttr layerSilhouette.color 6;
-  createDisplayLayer -name "layerEdge" -number 3 -empty;
-  setAttr layerEdge.color 14;
 }
 
 global proc createCrossShadeUI() {
