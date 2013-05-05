@@ -66,6 +66,7 @@ def readCrossSections():
   global ch
 
   #mel.eval("layerEditorSelectObjects layerCross;")
+  #mel.eval("SelectAllNURBSCurves;")
   curveNames = mel.eval("ls -sl -type transform")
 
   # no curve drawn
