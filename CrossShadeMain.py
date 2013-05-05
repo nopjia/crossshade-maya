@@ -269,8 +269,7 @@ def minOptimize():
         ch[i][j].nor = normalize(nor)
         ch[j][i].nor = nor
         #print "n_(%s,%s) : %s" % (i, j, ch[i][j].nor)
-        
-        cmds.spaceLocator( p=(ch[i][j].pos+ch[i][j].nor).tolist() )
+        #cmds.spaceLocator( p=(ch[i][j].pos+ch[i][j].nor).tolist() )
 
 # get interpolated normal of ch_ij along curve i at t
 def getCHNormAtT(chI, chJ, tparam):
@@ -324,7 +323,7 @@ def createCoonsPatch(cpairs):
   global normals
 
   # square patch dimension T_STEP by T_STEP
-  T_STEPS = 10  
+  T_STEPS = 11  
   
   vertices = [[None]*(T_STEPS) for x in range(T_STEPS)]
   normals = [[None]*(T_STEPS) for x in range(T_STEPS)]
