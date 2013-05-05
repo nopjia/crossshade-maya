@@ -52,7 +52,7 @@ global proc browseFile() {
 }
 
 global proc runCommand() {
-  SelectAllNURBSCurves;
+  // SelectAllNURBSCurves;
   if (size(`ls -sl`)<=1) {
     error "please select more one or more curves";
     return;
